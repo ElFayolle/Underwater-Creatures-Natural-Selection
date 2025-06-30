@@ -1,4 +1,5 @@
 import pygame
+import numpy as np
 
 pygame.init()
 # Set up the display
@@ -10,6 +11,7 @@ clock = pygame.time.Clock()
 # Main loop
 running = True
 
+len_nodes = 10
 forces = []
 accelerations = []
 
@@ -18,7 +20,7 @@ def force_rappel(i,j,creature):
     mi,mj = creature[i][0], creature[j][0]
     l = ((mi[0] - mj[0])**2 + (mi[1] - mj[1])**2)**0.5
     l0 = creature[i][1][j]
-    u_ij = (mi - mj) / l
+    u_ij = np.array((mi - mj)) / l
     return -k * (l - l0) * u_ij
 
 def pfd(forces):
