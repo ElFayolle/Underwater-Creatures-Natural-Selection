@@ -15,11 +15,8 @@ len_nodes = 10
 forces = np.zeros(len_nodes, 4)
 accelerations = []
 
-a = []
-v = []
-dx = []
 
-forces_aleatoires = [[10,0], [0,0]]
+
 
 def force_musculaire(i, creature, forces_aleatoires):
     nb_vois = nombre_de_voisins(i, creature)
@@ -47,6 +44,31 @@ def pfd(forces):
     accelerations_t /= m
     return accelerations_t
 
+
+
+
+#test de forces aléatoires
+forces 
+#calcul_position(np.Array(), float #pas de temps, float #temps de simul, int #nombre de noeuds)
+def calcul_position(forces, dt = 1/60, T = 10., n_nodes):
+
+    pos = [[100,100], [100,300]]
+    neigh = [[0,200], [200,0]]
+    a = pfd(forces)
+    n_interval_time = T/dt    
+    v = np.zeros(n_nodes, n_interval_time, 2)
+    xy = np.zeros(n_nodes, n_interval_time, 2)
+    xy[:,0] = pos
+
+
+    for t in range(1,n_interval_time):
+        v[:,t] = (dt*a[-1] + v[-1])
+        pos[t] = (dt*v[-1] + pos[-1])
+
+    return(v, pos)
+
+
+
 while running:
     # Handle events
     for event in pygame.event.get():
@@ -64,12 +86,6 @@ while running:
     pos = [[100,100], [100,300]]
     neigh = [[0,200], [200,0]]
 
-    dt = 1/60
-
-    
-    accelerations_t = pfd(forces)
-    a.append(accelerations) 
-    v.append(dt*a[-1] + v[-1])
 
 
     
@@ -80,6 +96,7 @@ while running:
             if voisin!= 0:
                 pygame.draw.line(screen, (125,50,0), pos[i], pos[j], 10)
         pygame.draw.circle(screen, (255,0,0), pos[i], 20) 
+
 
     pygame.display.flip()
 # Quit Pygame
