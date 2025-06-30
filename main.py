@@ -19,7 +19,7 @@ running = True
 
 n_nodes = 10
 forces = np.zeros((n_nodes, 4))
-forces = [[(15,12),(0,0),(0,0),(0,0),(0,0)],[(0,0),(0,0),(-7,8),(0,0),(0,0)]]
+forces = [ [[[15,12],[0,0]],[[7,4],[1,3]],[[0,0],[0,0]]] , [[[25,22],[10,10]],[[17,14],[1,3]],[[0,0],[0,0]]] ]
 accelerations = []
 
 
@@ -71,16 +71,14 @@ def force_rappel(i,j,creature):  #Erronée
     return -k * (l - l0) * u_ij
 
 
-def pfd(forces, mass=1):
+def pfd(liste_force, t, mass=1):
     """
     forces: (n_nodes, n_interval_time, n_forces, 2)
     retourne : accelerations of shape (n_nodes, n_interval_time, 2)
     """
-    total_force = np.sum(forces, axis=2)  # shape: (n_nodes, n_interval_time, 2)
+    total_force = np.sum(liste_force[:,t], axis=1)  # shape: (n_nodes, n_interval_time, 2)
     accelerations = total_force / mass
     return accelerations
-
-
 
 
 #test de forces aléatoires
@@ -88,23 +86,24 @@ def pfd(forces, mass=1):
 force_initial = [[[[15,12],[0,0]],[[7,4],[1,3]],[[0,0],[0,0]]] , [[[-25,-22],[-10,-10]],[[-17,-14],[-1,-3]],[[0,0],[0,0]]]]
 
 #calcul_position(np.Array(), float #pas de temps, float #temps de simul, int #nombre de noeuds)
-def calcul_position(forces, dt = 1/60, T = 10., n_nodes=2):
+def calcul_position(f_musc_periode, dt = 1/60, T = 10., n_nodes=2):
+
+    #liste_forces = [ f_eau, f_musc, f_rap ]
 
     pos = [[100,100], [100,300]] #test pos initial pour 2 noeuds
     neigh = [[0,200], [200,0]]   
 
     #Nombre d'itérations
     n_interval_time = int(T/dt)  
-
     # Forces qui boucle sur la période cyclique de force donnée
-    forces_entiers = np.array([[forces[i][j%len(forces[i])] for j in range(n_interval_time)] for i in range(len(forces))])
+    f_musc = np.array([[f_musc_periode[i][j%len(f_musc_periode[i])] for j in range(n_interval_time)] for i in range(len(f_musc_periode))])
     print(np.shape(forces_entiers))
     #CI vitesse 
     v = np.zeros((n_nodes, int(n_interval_time), 2))  #shape = (N_noeuds, N_t, 2)
     xy = np.zeros((n_nodes, int(n_interval_time), 2)) #shape = (N_noeuds, N_t, 2)
-    a = pfd(forces_entiers)
-
-    
+    a = np.zeros((n_nodes, int(n_interval_time), 2))
+    f_eau = np.zeros((n_nodes, int(n_interval_time), 2))
+    f_rap = np.zeros((n_nodes, int(n_interval_time), 2))
 
     print(np.shape(v))
     print(np.shape(a))
@@ -112,6 +111,12 @@ def calcul_position(forces, dt = 1/60, T = 10., n_nodes=2):
 
 
     for t in range(1,int(n_interval_time)):
+        f_eau[t] = 0 # fonction de xy[:,t-1]
+        f_rap[t] = 0 # fonction de v[:t-1] et xy[:,t-1]
+        liste_forces = [f_rap, f_eau,f_musc]
+        
+        a[:,t] = pfd(liste_forces, t)
+        
         v[:, t] = v[:, t-1] + dt * a[:, t-1]
         xy[:, t] = xy[:, t-1] + dt * v[:, t-1]
 
