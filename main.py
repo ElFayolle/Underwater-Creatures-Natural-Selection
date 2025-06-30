@@ -1,4 +1,5 @@
 import pygame
+import numpy as np
 
 pygame.init()
 # Set up the display
@@ -10,32 +11,40 @@ clock = pygame.time.Clock()
 # Main loop
 running = True
 
-forces = []
+len_nodes = 10
+forces = np.zeros(len_nodes, 4)
 accelerations = []
 a = []
 v = []
 dx = []
 
+forces_aleatoires = []
+
+def force_musculaire(i, creature, forces_aleatoires):
+    nb_vois = nombre_de_voisins(i, creature)
+    for voisin, index in enumerate(creature[i][1]) :
+        if voisin != 0 :
+            forces[index][1] += forces_aleatoires[i] / nb_vois
+
+def nombre_de_voisins(i, creature):
+    nb = 0
+    for voisin in creature[i][1] :
+        nb += 1
+    return nb
 
 def force_rappel(i,j,creature):
     k = 0.5
     mi,mj = creature[i][0], creature[j][0]
     l = ((mi[0] - mj[0])**2 + (mi[1] - mj[1])**2)**0.5
     l0 = creature[i][1][j]
-    u_ij = (mi - mj) / l
+    u_ij = np.array((mi - mj)) / l
     return -k * (l - l0) * u_ij
 
 def pfd(forces):
     m = 1
-    accelerations = []
-    for i in range(len(forces)):
-        forces_i = [0, 0]
-        for j in range(len(forces[i])):
-            forces_i += forces[i][j]
-        accelerations.append(forces_i / m)
-    return accelerations
-a.append(accelerations)
-
+    accelerations_t = np.sum(forces, axis=1)  # Sum forces for each node
+    accelerations_t /= m
+    return accelerations_t
 
 while running:
     # Handle events
