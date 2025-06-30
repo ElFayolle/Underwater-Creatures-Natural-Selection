@@ -10,15 +10,11 @@ clock = pygame.time.Clock()
 # Main loop
 running = True
 
-class Creature:
-    nodes = []
-    links = []
-
 def force_rappel(i,j,creature):
     k = 0.5
-    mi,mj = creature.nodes[i], creature.nodes[j]
+    mi,mj = creature[i][0], creature.nodes[j][0]
     l = ((mi[0] - mj[0])**2 + (mi[1] - mj[1])**2)**0.5
-    l0 = creature.links[i][j]
+    l0 = creature[i][1][j]
     u_ij = (mi - mj) / l
     return -k * (l - l0) * u_ij
 
@@ -32,15 +28,19 @@ while running:
     screen.fill((0, 128, 255))
 
     # Update the display
-    pygame.display.flip()
     
 
     # Cap the frame rate at 60 FPS
-    clock.tick(60)
-    L = [[[1,1], [0,2]], [1,3], [2,0]]
-    
+    clock.tick(1)
+    L = [[(100,100), [0,200]], [(10,300), [200,0]]]
+
+    for i in L:
+        for index,j in enumerate(i):
+            if j!= 0:
+                pygame.draw.line(screen, (125,50,0), i[0], L[index][0], 10)
+        pygame.draw.circle(screen, (255,0,0), i[0], 20) 
+
+
+    pygame.display.flip()
 # Quit Pygame
 pygame.quit()
-
-
-
