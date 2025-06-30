@@ -25,6 +25,9 @@ while running:
     clock.tick(1)
     L = [[(100.,100.), [0.,200.]], [(100.,300.), [200.,0.]]]
 
+    accelerations = pfd(forces)
+
+
     for i in L:
         for index,j in enumerate(i):
             if j!= 0:
@@ -36,6 +39,3 @@ while running:
     pygame.display.flip()
 # Quit Pygame
 pygame.quit()
-
-
-
