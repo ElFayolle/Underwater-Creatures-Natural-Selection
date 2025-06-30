@@ -10,6 +10,9 @@ clock = pygame.time.Clock()
 # Main loop
 running = True
 
+forces = []
+accelerations = []
+
 def force_rappel(i,j,creature):
     k = 0.5
     mi,mj = creature[i][0], creature.nodes[j][0]
@@ -17,6 +20,16 @@ def force_rappel(i,j,creature):
     l0 = creature[i][1][j]
     u_ij = (mi - mj) / l
     return -k * (l - l0) * u_ij
+
+def pfd(forces):
+    m = 1
+    accelerations = []
+    for i in range(len(forces)):
+        forces_i = [0, 0]
+        for j in range(len(forces[i])):
+            forces_i += forces[i][j]
+        accelerations.append(forces_i / m)
+    return accelerations
 
 while running:
     # Handle events
@@ -33,6 +46,9 @@ while running:
     # Cap the frame rate at 60 FPS
     clock.tick(1)
     L = [[(100,100), [0,200]], [(10,300), [200,0]]]
+
+    accelerations = pfd(forces)
+
 
     for i in L:
         for index,j in enumerate(i):
