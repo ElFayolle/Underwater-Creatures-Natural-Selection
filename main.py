@@ -1,11 +1,6 @@
 import pygame
 import numpy as np
 
-"""from nptyping import NDArray, Float64, Shape
-
-def ma_fonction(tableau: NDArray[Shape["3, 3"], Float64]) -> None:
-    
-    Si on veut annoter les fonctions et faire les choses proprement"""
 
 pygame.init()
 # Set up the display
@@ -96,24 +91,22 @@ def calcul_position(f_musc_periode, dt = 1/60, T = 10., n_nodes=2):
     #Nombre d'itérations
     n_interval_time = int(T/dt)  
     # Forces qui boucle sur la période cyclique de force donnée
-    f_musc = np.array([[f_musc_periode[i][j%len(f_musc_periode[i])] for j in range(n_interval_time)] for i in range(len(f_musc_periode))])
-    print(np.shape(forces_entiers))
-    #CI vitesse 
+    f_musc = np.array([[f_musc_periode[i][j%len(f_musc_periode[i])] for j in range(n_interval_time)] for i in range(len(f_musc_periode))])    #CI vitesse 
     v = np.zeros((n_nodes, int(n_interval_time), 2))  #shape = (N_noeuds, N_t, 2)
     xy = np.zeros((n_nodes, int(n_interval_time), 2)) #shape = (N_noeuds, N_t, 2)
     a = np.zeros((n_nodes, int(n_interval_time), 2))
     f_eau = np.zeros((n_nodes, int(n_interval_time), 2))
     f_rap = np.zeros((n_nodes, int(n_interval_time), 2))
-
-    print(np.shape(v))
-    print(np.shape(a))
+    print(np.shape(f_eau))
+    print(np.shape(f_rap))
+    print(np.shape(f_musc))
     xy[:,0] = pos
 
 
     for t in range(1,int(n_interval_time)):
-        f_eau[t] = 0 # fonction de xy[:,t-1]
-        f_rap[t] = 0 # fonction de v[:t-1] et xy[:,t-1]
-        liste_forces = [f_rap, f_eau,f_musc]
+        f_eau[t] = frottement_eau(v[:,t-1], xy[:,t-1], t)# fonction de xy[:,t-1]
+        f_rap[t] = force_rappel(1,2,3) # fonction de v[:t-1] et xy[:,t-1] ATTENDRE BASILE
+        liste_forces = np.array([f_rap, f_eau,f_musc])
         
         a[:,t] = pfd(liste_forces, t)
         
@@ -121,6 +114,13 @@ def calcul_position(f_musc_periode, dt = 1/60, T = 10., n_nodes=2):
         xy[:, t] = xy[:, t-1] + dt * v[:, t-1]
 
     return (v, xy)
+
+
+
+
+def score(energie, distance, taille):
+    score = 2/3*distance/max(distance) + 1/3* energie/taille * max(taille/energie)
+
 
 def check_line_cross(creature:np.ndarray)->np.ndarray: # Fonction naïve pour empêcher les croisements de segments
     l = len(creature)
