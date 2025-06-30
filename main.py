@@ -8,11 +8,13 @@ screen = pygame.display.set_mode((width, height))
 pygame.display.set_caption("Natural Selection Simulation")
 # Set up the clock for frame rate control
 clock = pygame.time.Clock()
+fond = pygame.image.load("fond.jpg").convert()
+fond = pygame.transform.scale(fond, (width, height))
 # Main loop
 running = True
 
 len_nodes = 10
-forces = np.zeros(len_nodes, 4)
+forces = np.zeros((len_nodes, 4))
 accelerations = []
 
 
@@ -32,9 +34,9 @@ def nombre_de_voisins(i, creature):
 
 def force_rappel(i,j,creature):
     k = 0.5
-    mi,mj = creature[i][0], creature[j][0]
+    mi,mj = creature[0][i], creature[0][j]
     l = ((mi[0] - mj[0])**2 + (mi[1] - mj[1])**2)**0.5
-    l0 = creature[i][1][j]
+    l0 = creature[1][i][j]
     u_ij = np.array((mi - mj)) / l
     return -k * (l - l0) * u_ij
 
@@ -76,15 +78,16 @@ while running:
             running = False
 
     # Fill the screen with a color (RGB)
-    screen.fill((0, 128, 255))
+    screen.blit(fond, (0,0))
 
     # Update the display
     
 
     # Cap the frame rate at 60 FPS
-    clock.tick(1)
     pos = [[100,100], [100,300]]
     neigh = [[0,200], [200,0]]
+    clock.tick(60)
+    L = [[(100,100), [0,200]], [(10,300), [200,0]]]
 
 
 
