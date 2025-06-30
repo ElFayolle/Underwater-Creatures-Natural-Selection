@@ -12,21 +12,28 @@ clock = pygame.time.Clock()
 # Main loop
 running = True
 
-len_nodes = 10
-forces = np.zeros((len_nodes, 4))
+n_nodes = 10
+forces = np.zeros((n_nodes, 4))
+forces = [[(15,12),(0,0),(0,0),(0,0),(0,0)],[(0,0),(0,0),(-7,8),(0,0),(0,0)]]
 accelerations = []
-forces_aleatoires = []
 
-def force_musculaire(i, creature, forces_aleatoires):
-    nb_vois = nombre_de_voisins(i, creature)
-    for index, voisin in enumerate(creature[i][1]) :
+
+
+
+
+def force_musculaire(i, k, creatures, forces_creatures_points):
+    """Calcule la force musculaire pour les points voisins du point k de la ième créature"""
+    nb_vois = nombre_de_voisins(k, i, creatures)
+    for index, voisin in enumerate(creatures[i][1][k]) :
         if voisin != 0 :
-            forces[index][1] += forces_aleatoires[i] / nb_vois
+            forces[i][index][1] += forces_creatures_points[i][k] / nb_vois
 
-def nombre_de_voisins(i, creature):
+def nombre_de_voisins(k, i, creatures):
+    """Calcule le nombre de voisins du point k de la ième créature"""
     nb = 0
-    for voisin in creature[i][1] :
-        nb += 1
+    for voisin in creatures[i][1][k] :
+        if voisin != 0 :
+            nb += 1
     return nb
 
 def force_rappel(i,j,creature):
@@ -37,11 +44,49 @@ def force_rappel(i,j,creature):
     u_ij = np.array((mi - mj)) / l
     return -k * (l - l0) * u_ij
 
-def pfd(forces):
-    m = 1
-    accelerations_t = np.sum(forces, axis=1)  # Sum forces for each node
-    accelerations_t /= m
-    return accelerations_t
+
+def pfd(forces, mass=1):
+    """
+    forces: (n_nodes, n_interval_time, n_forces, 2)
+    retourne : accelerations of shape (n_nodes, n_interval_time, 2)
+    """
+    total_force = np.sum(forces, axis=2)  # shape: (n_nodes, n_interval_time, 2)
+    accelerations = total_force / mass
+    return accelerations
+
+
+
+
+#test de forces aléatoires
+ 
+#calcul_position(np.Array(), float #pas de temps, float #temps de simul, int #nombre de noeuds)
+def calcul_position(forces, dt = 1/60, T = 10., n_nodes=2):
+
+    pos = [[100,100], [100,300]] #test pos initial pour 2 noeuds
+    neigh = [[0,200], [200,0]]   
+
+    #Nombre d'itérations
+    n_interval_time = int(T/dt)  
+
+    # Forces qui boucle sur la période cyclique de force donnée
+    forces_entiers = np.array([forces[i%len(forces)] for i in range(n_interval_time)])
+
+    #CI vitesse 
+    v = np.zeros((n_nodes, int(n_interval_time), 2))  #shape = (N_noeuds, N_t, 2)
+    xy = np.zeros((n_nodes, int(n_interval_time), 2)) #shape = (N_noeuds, N_t, 2)
+    a = pfd(forces_entiers)
+    
+
+    print(np.shape(v))
+    print(np.shape(a))
+    xy[:,0] = pos
+
+
+    for t in range(1,int(n_interval_time)):
+        v[:, t] = v[:, t-1] + dt * a[:, t-1]
+        pos[:, t] = pos[:, t-1] + dt * v[:, t-1]
+
+    return (v, pos)
 
 def check_line_cross(creature:np.ndarray)->np.ndarray: # Fonction naïve pour empêcher les croisements de segments
     l = len(creature)
@@ -79,36 +124,27 @@ def check_line_cross(creature:np.ndarray)->np.ndarray: # Fonction naïve pour em
     return pt_intersec
 
 
+forces = []
+pos  = calcul_position(forces)
+t = 0
 
 
-while running:
-    # Handle events
+while running and t < 10/(1/60):
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
 
-    # Fill the screen with a color (RGB)
     screen.fill((0, 128, 255))
 
-    # Update the display
-    
+    # Ligne entre les deux points
+    pygame.draw.line(screen, (125, 50, 0), pos[0, t], pos[1, t], 10)
 
-    # Cap the frame rate at 60 FPS
-    clock.tick(1)
-    L = [[(100,100), [0,200]], [(10,300), [200,0]]]
-
-    accelerations_avant = accelerations.copy()
-    accelerations_t = pfd(forces)
-
-
-
-    for i in L:
-        for index,j in enumerate(i):
-            if j!= 0:
-                pygame.draw.line(screen, (125,50,0), i[0], L[index][0], 10)
-        pygame.draw.circle(screen, (255,0,0), i[0], 20) 
- 
+    # Cercles pour chaque point
+    for i in range(n_nodes):
+        pygame.draw.circle(screen, (255, 0, 0), pos[i, t].astype(int), 20)
 
     pygame.display.flip()
+    clock.tick(60)
+    t += 1
 # Quit Pygame
 pygame.quit()
