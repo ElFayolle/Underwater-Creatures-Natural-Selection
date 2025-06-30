@@ -1,5 +1,6 @@
 import pygame
 import numpy as np
+import functions
 
 pygame.init()
 # Set up the display
@@ -13,8 +14,9 @@ running = True
 
 n_nodes = 10
 forces = np.zeros((n_nodes, 4))
-forces = [[(15,12),(0,0),(0,0),(0,0),(0,0)],[(0,0),(0,0),(-7,8),(0,0),(0,0)]]
+forces = [ [[[15,12],[0,0]],[[7,4],[1,3]],[[0,0],[0,0]]] , [[[25,22],[10,10]],[[17,14],[1,3]],[[0,0],[0,0]]] ]
 accelerations = []
+
 
 
 
@@ -38,7 +40,7 @@ def force_rappel(i,j,creature):
     k = 100e10
     mi,mj = creature[i][0], creature[j][0]
     l = ((mi[0] - mj[0])**2 + (mi[1] - mj[1])**2)**0.5
-    l0 = creature[i][1][j]
+    l0 = creature[i][1 ][j]
     u_ij = np.array((mi - mj)) / l
     return -k * (l - l0) * u_ij
 
@@ -93,6 +95,42 @@ def calcul_position(f_musc_periode, dt = 1/60, T = 10., n_nodes=2):
         xy[:, t] = xy[:, t-1] + dt * v[:, t-1]
 
     return (v, xy)
+
+def check_line_cross(creature:np.ndarray)->np.ndarray: # Fonction naïve pour empêcher les croisements de segments
+    l = len(creature)
+
+    #Tableau booléens d'intersection du segment i "[AB]" au segment j "[CD]""
+    pt_intersec = np.zeros((l-1,l-1)) 
+
+    # Calcul des droites passant par chaque segment
+    for i in range(l-1):
+        for j in range(l-1):  
+            delta_x_1 = (creature[i+1][0]-creature[i][0]) 
+            delta_x_2 = (creature[j+1][0]-creature[j][0])
+            if delta_x_1 <=1e-6:
+                coeff_droite_1 = 0
+            else:
+                coeff_droite_1 = (creature[i+1][1]-creature[i][1])/delta_x_1    # Delta y sur delta x pour les coefficients affines 
+            if delta_x_2 <=1e-6:
+                coeff_droite_2 = 0
+            else:
+                coeff_droite_2 = (creature[j+1][1]-creature[j][1])/delta_x_2
+            ordonnée_origine_1 = creature[i][1] - coeff_droite_1*creature[i]    # On caclule l'ordonnée à l'origine de chaque droite
+            ordonnée_origine_2 = creature[j][1] - coeff_droite_1*creature[j]
+
+        
+        # Booléens:
+        above_CD_A = (coeff_droite_2*creature[i][0] + ordonnée_origine_2 <= creature[i][1] )
+        above_CD_B = (coeff_droite_2*creature[i+1][0] + ordonnée_origine_2 <= creature[i+1][1])
+        above_AB_C = (coeff_droite_1*creature[j][0] + ordonnée_origine_1 <= creature[j][1])
+        above_AB_D = (coeff_droite_1*creature[j+1][0] + ordonnée_origine_1 <= creature[j+1][1])
+
+        # Si les segments se croisent chaque point est de part et d'autre des deux droites définies:
+        if (above_AB_C != above_AB_D ) and (above_CD_A != above_CD_B):  # Si chaque couple de point est de part et d'autre du segment réciproque, il y a intersection !
+            pt_intersec[i][j]=1
+        
+    return pt_intersec
+
 
 forces = []
 pos  = calcul_position(force_initial)[1]
