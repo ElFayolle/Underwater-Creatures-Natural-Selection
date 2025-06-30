@@ -25,9 +25,9 @@ def force_rappel(i,j,creature):
 
 def pfd(forces):
     m = 1
-    accelerations = np.sum(forces, axis=1)  # Sum forces for each node
-    accelerations /= m
-    return accelerations
+    accelerations_t = np.sum(forces, axis=1)  # Sum forces for each node
+    accelerations_t /= m
+    return accelerations_t
 
 while running:
     # Handle events
@@ -45,7 +45,9 @@ while running:
     clock.tick(1)
     L = [[(100,100), [0,200]], [(10,300), [200,0]]]
 
-    accelerations = pfd(forces)
+    accelerations_avant = accelerations.copy()
+    accelerations_t = pfd(forces)
+
 
 
     for i in L:
