@@ -8,11 +8,13 @@ screen = pygame.display.set_mode((width, height))
 pygame.display.set_caption("Natural Selection Simulation")
 # Set up the clock for frame rate control
 clock = pygame.time.Clock()
+fond = pygame.image.load("fond.jpg").convert()
+fond = pygame.transform.scale(fond, (width, height))
 # Main loop
 running = True
 
 len_nodes = 10
-forces = np.zeros(len_nodes, 4)
+forces = np.zeros((len_nodes, 4))
 accelerations = []
 
 def force_rappel(i,j,creature):
@@ -36,13 +38,13 @@ while running:
             running = False
 
     # Fill the screen with a color (RGB)
-    screen.fill((0, 128, 255))
+    screen.blit(fond, (0,0))
 
     # Update the display
     
 
     # Cap the frame rate at 60 FPS
-    clock.tick(1)
+    clock.tick(60)
     L = [[(100,100), [0,200]], [(10,300), [200,0]]]
 
     accelerations_avant = accelerations.copy()
