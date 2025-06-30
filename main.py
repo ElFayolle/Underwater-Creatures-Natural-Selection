@@ -17,6 +17,24 @@ len_nodes = 10
 forces = np.zeros((len_nodes, 4))
 accelerations = []
 
+a = []
+v = []
+dx = []
+
+forces_aleatoires = [[10,0], [0,0]]
+
+def force_musculaire(i, creature, forces_aleatoires):
+    nb_vois = nombre_de_voisins(i, creature)
+    for voisin, index in enumerate(creature[i][1]) :
+        if voisin != 0 :
+            forces[index][1] += forces_aleatoires[i] / nb_vois
+
+def nombre_de_voisins(i, creature):
+    nb = 0
+    for voisin in creature[i][1] :
+        nb += 1
+    return nb
+
 def force_rappel(i,j,creature):
     k = 0.5
     mi,mj = creature[i][0], creature[j][0]
@@ -44,20 +62,28 @@ while running:
     
 
     # Cap the frame rate at 60 FPS
+    clock.tick(1)
+    pos = [[100,100], [100,300]]
+    neigh = [[0,200], [200,0]]
     clock.tick(60)
     L = [[(100,100), [0,200]], [(10,300), [200,0]]]
 
-    accelerations_avant = accelerations.copy()
+    dt = 1/60
+
+    
     accelerations_t = pfd(forces)
+    a.append(accelerations) 
+    v.append(dt*a[-1] + v[-1])
 
 
+    
 
-    for i in L:
-        for index,j in enumerate(i):
-            if j!= 0:
-                pygame.draw.line(screen, (125,50,0), i[0], L[index][0], 10)
-        pygame.draw.circle(screen, (255,0,0), i[0], 20) 
 
+    for i, point in enumerate(pos):
+        for j, voisin in enumerate(point):
+            if voisin!= 0:
+                pygame.draw.line(screen, (125,50,0), pos[i], pos[j], 10)
+        pygame.draw.circle(screen, (255,0,0), pos[i], 20) 
 
     pygame.display.flip()
 # Quit Pygame
