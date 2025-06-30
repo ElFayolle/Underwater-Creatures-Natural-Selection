@@ -1,6 +1,5 @@
 import pygame
 import numpy as np
-import functions
 
 pygame.init()
 # Set up the display
@@ -54,7 +53,29 @@ def pfd(forces, mass=1):
     accelerations = total_force / mass
     return accelerations
 
+def vitesse_moyenne(vitesse, t):
+    """
+    vitesse: (n_nodes, n_interval_time, 2)
+    t: float
+    retourne : moyenne des vitesses sur le temps t
+    """
+    vitesse_moy = np.mean(vitesse[:, int(t)], axis=0)  # liste de 2 éléments : v_moy_x, v_moy_y
+    vitesse_moy = np.linalg.norm(vitesse_moy)  # norme de la vitesse
+    return vitesse_moy
 
+vit = np.array([[[4,8],[2,3]],[[1,2],[3,4]],[[0,0],[1,1]]])  # Exemple de vitesses pour 3 noeuds et 2 temps
+print("vitesse",vitesse_moyenne(vit, 1))  # Affiche la vitesse moyenne au temps t=1
+
+def energie_cinetique(vitesse, t, masse = 1):
+    """
+    vitesse: (n_nodes, n_interval_time, 2)
+    retourne : énergie cinétique de la créature
+    """
+    vitesse_norm = np.linalg.norm(vitesse[:, int(t)], axis=1)  # norme de la vitesse pour chaque noeud
+    energie = 0.5 * masse * np.sum(vitesse_norm**2)  # somme des énergies cinétiques
+    return energie
+
+print("Energie cinétique", energie_cinetique(vit, 1))  # Affiche l'énergie cinétique pour les vitesses données
 
 
 #test de forces aléatoires
@@ -132,7 +153,7 @@ pos  = calcul_position(force_initial)[1]
 t = 0
 
 
-while running and t < 10/(1/60):
+"""while running and t < 10/(1/60):
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -150,7 +171,7 @@ while running and t < 10/(1/60):
 
     pygame.display.flip()
     clock.tick(60)
-    t += 1
+    t += 1"""
 
 # Quit Pygame
 pygame.quit()
