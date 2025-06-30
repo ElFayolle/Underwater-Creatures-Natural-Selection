@@ -12,7 +12,7 @@ clock = pygame.time.Clock()
 running = True
 
 len_nodes = 10
-forces = []
+forces = np.zeros(len_nodes, 4)
 accelerations = []
 
 def force_rappel(i,j,creature):
@@ -25,12 +25,8 @@ def force_rappel(i,j,creature):
 
 def pfd(forces):
     m = 1
-    accelerations = []
-    for i in range(len(forces)):
-        forces_i = [0, 0]
-        for j in range(len(forces[i])):
-            forces_i += forces[i][j]
-        accelerations.append(forces_i / m)
+    accelerations = np.sum(forces, axis=1)  # Sum forces for each node
+    accelerations /= m
     return accelerations
 
 while running:
