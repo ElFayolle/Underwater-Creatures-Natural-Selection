@@ -92,7 +92,7 @@ def check_line_cross(creature:np.ndarray)->np.ndarray: # Fonction naïve pour em
     l = len(creature)
 
     #Tableau booléens d'intersection du segment i "[AB]" au segment j "[CD]""
-    pt_intersec = np.zeros((l,l)) 
+    pt_intersec = np.zeros((l-1,l-1)) 
 
     # Calcul des droites passant par chaque segment
     for i in range(l-1):
