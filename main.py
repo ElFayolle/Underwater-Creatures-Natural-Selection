@@ -13,8 +13,9 @@ fond = pygame.transform.scale(fond, (width, height))
 # Main loop
 running = True
 
-len_nodes = 10
-forces = np.zeros((len_nodes, 4))
+n_nodes = 10
+forces = np.zeros((n_nodes, 4))
+forces = [[(15,12),(0,0),(0,0),(0,0),(0,0)],[(0,0),(0,0),(-7,8),(0,0),(0,0)]]
 accelerations = []
 
 
