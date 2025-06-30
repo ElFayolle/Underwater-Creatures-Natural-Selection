@@ -14,6 +14,19 @@ running = True
 len_nodes = 10
 forces = np.zeros(len_nodes, 4)
 accelerations = []
+forces_aleatoires = []
+
+def force_musculaire(i, creature, forces_aleatoires):
+    nb_vois = nombre_de_voisins(i, creature)
+    for voisin, index in enumerate(creature[i][1]) :
+        if voisin != 0 :
+            forces[index][1] += forces_aleatoires[i] / nb_vois
+
+def nombre_de_voisins(i, creature):
+    nb = 0
+    for voisin in creature[i][1] :
+        nb += 1
+    return nb
 
 def force_rappel(i,j,creature):
     k = 0.5
