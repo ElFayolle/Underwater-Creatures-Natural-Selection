@@ -35,7 +35,7 @@ def nombre_de_voisins(k, i, creatures):
     return nb
 
 def force_rappel(i,j,creature):
-    k = 0.5
+    k = 100e10
     mi,mj = creature[i][0], creature[j][0]
     l = ((mi[0] - mj[0])**2 + (mi[1] - mj[1])**2)**0.5
     l0 = creature[i][1][j]
@@ -57,6 +57,8 @@ def pfd(forces, mass=1):
 
 #test de forces aléatoires
  
+force_initial = [[[[15,12],[0,0]],[[7,4],[1,3]],[[0,0],[0,0]]] , [[[-25,-22],[-10,-10]],[[-17,-14],[-1,-3]],[[0,0],[0,0]]]]
+
 #calcul_position(np.Array(), float #pas de temps, float #temps de simul, int #nombre de noeuds)
 def calcul_position(forces, dt = 1/60, T = 10., n_nodes=2):
 
@@ -67,12 +69,13 @@ def calcul_position(forces, dt = 1/60, T = 10., n_nodes=2):
     n_interval_time = int(T/dt)  
 
     # Forces qui boucle sur la période cyclique de force donnée
-    forces_entiers = np.array([forces[i%len(forces)] for i in range(n_interval_time)])
-
+    forces_entiers = np.array([[forces[i][j%len(forces[i])] for j in range(n_interval_time)] for i in range(len(forces))])
+    print(np.shape(forces_entiers))
     #CI vitesse 
     v = np.zeros((n_nodes, int(n_interval_time), 2))  #shape = (N_noeuds, N_t, 2)
     xy = np.zeros((n_nodes, int(n_interval_time), 2)) #shape = (N_noeuds, N_t, 2)
     a = pfd(forces_entiers)
+
     
 
     print(np.shape(v))
@@ -82,12 +85,12 @@ def calcul_position(forces, dt = 1/60, T = 10., n_nodes=2):
 
     for t in range(1,int(n_interval_time)):
         v[:, t] = v[:, t-1] + dt * a[:, t-1]
-        pos[:, t] = pos[:, t-1] + dt * v[:, t-1]
+        xy[:, t] = xy[:, t-1] + dt * v[:, t-1]
 
-    return (v, pos)
+    return (v, xy)
 
 forces = []
-pos  = calcul_position(forces)
+pos  = calcul_position(force_initial)[1]
 t = 0
 
 
@@ -97,16 +100,19 @@ while running and t < 10/(1/60):
             running = False
 
     screen.fill((0, 128, 255))
-
+    
     # Ligne entre les deux points
     pygame.draw.line(screen, (125, 50, 0), pos[0, t], pos[1, t], 10)
-
+    n_nodes = 2
     # Cercles pour chaque point
     for i in range(n_nodes):
-        pygame.draw.circle(screen, (255, 0, 0), pos[i, t].astype(int), 20)
+        print()
+        print(pos[0])
+        pygame.draw.circle(screen, (255, 0, 0), pos[i, t], 20)
 
     pygame.display.flip()
     clock.tick(60)
     t += 1
+
 # Quit Pygame
 pygame.quit()
