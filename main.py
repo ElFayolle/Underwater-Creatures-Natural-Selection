@@ -9,6 +9,19 @@ pygame.display.set_caption("Natural Selection Simulation")
 clock = pygame.time.Clock()
 # Main loop
 running = True
+
+class Creature:
+    nodes = []
+    links = []
+
+def force_rappel(i,j,creature):
+    k = 0.5
+    mi,mj = creature.nodes[i], creature.nodes[j]
+    l = ((mi[0] - mj[0])**2 + (mi[1] - mj[1])**2)**0.5
+    l0 = creature.links[i][j]
+    u_ij = (mi - mj) / l
+    return -k * (l - l0) * u_ij
+
 while running:
     # Handle events
     for event in pygame.event.get():
