@@ -14,11 +14,12 @@ running = True
 len_nodes = 10
 forces = np.zeros(len_nodes, 4)
 accelerations = []
+
 a = []
 v = []
 dx = []
 
-forces_aleatoires = []
+forces_aleatoires = [[10,0], [0,0]]
 
 def force_musculaire(i, creature, forces_aleatoires):
     nb_vois = nombre_de_voisins(i, creature)
