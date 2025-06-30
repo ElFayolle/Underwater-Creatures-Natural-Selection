@@ -15,7 +15,7 @@ accelerations = []
 
 def force_rappel(i,j,creature):
     k = 0.5
-    mi,mj = creature[i][0], creature.nodes[j][0]
+    mi,mj = creature[i][0], creature[j][0]
     l = ((mi[0] - mj[0])**2 + (mi[1] - mj[1])**2)**0.5
     l0 = creature[i][1][j]
     u_ij = (mi - mj) / l
