@@ -11,23 +11,27 @@ clock = pygame.time.Clock()
 # Main loop
 running = True
 
-len_nodes = 10
-forces = np.zeros((len_nodes, 4))
+n_nodes = 10
+forces = np.zeros((n_nodes, 4))
+forces = [[(15,12),(0,0),(0,0),(0,0),(0,0)],[(0,0),(0,0),(-7,8),(0,0),(0,0)]]
 accelerations = []
 
 
 
 
-def force_musculaire(i, creature, forces_aleatoires):
-    nb_vois = nombre_de_voisins(i, creature)
-    for voisin, index in enumerate(creature[i][1]) :
+def force_musculaire(i, k, creatures, forces_creatures_points):
+    """Calcule la force musculaire pour les points voisins du point k de la ième créature"""
+    nb_vois = nombre_de_voisins(k, i, creatures)
+    for index, voisin in enumerate(creatures[i][1][k]) :
         if voisin != 0 :
-            forces[index][1] += forces_aleatoires[i] / nb_vois
+            forces[i][index][1] += forces_creatures_points[i][k] / nb_vois
 
-def nombre_de_voisins(i, creature):
+def nombre_de_voisins(k, i, creatures):
+    """Calcule le nombre de voisins du point k de la ième créature"""
     nb = 0
-    for voisin in creature[i][1] :
-        nb += 1
+    for voisin in creatures[i][1][k] :
+        if voisin != 0 :
+            nb += 1
     return nb
 
 def force_rappel(i,j,creature):
