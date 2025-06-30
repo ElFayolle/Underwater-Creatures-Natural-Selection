@@ -49,6 +49,8 @@ def pfd(forces):
     accelerations_t /= m
     return accelerations_t
 
+def force_eau_expulsion()
+
 while running:
     # Handle events
     for event in pygame.event.get():
