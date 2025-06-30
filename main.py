@@ -15,7 +15,7 @@ running = True
 
 n_nodes = 10
 forces = np.zeros((n_nodes, 4))
-forces = [[(15,12),(0,0),(0,0),(0,0),(0,0)],[(0,0),(0,0),(-7,8),(0,0),(0,0)]]
+forces = [ [[[15,12],[0,0]],[[7,4],[1,3]],[[0,0],[0,0]]] , [[[25,22],[10,10]],[[17,14],[1,3]],[[0,0],[0,0]]] ]
 accelerations = []
 
 
@@ -43,7 +43,7 @@ def force_rappel(i,j,creature):
 
 def pfd(forces):
     m = 1
-    accelerations_t = np.sum(forces, axis=1)  # Sum forces for each node
+    accelerations_t = np.sum(forces, axis=2)  # Sum forces for each node
     accelerations_t /= m
     return accelerations_t
 
