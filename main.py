@@ -1,6 +1,11 @@
 import pygame
 import numpy as np
-import functions
+
+"""from nptyping import NDArray, Float64, Shape
+
+def ma_fonction(tableau: NDArray[Shape["3, 3"], Float64]) -> None:
+    
+    Si on veut annoter les fonctions et faire les choses proprement"""
 
 pygame.init()
 # Set up the display
@@ -21,12 +26,12 @@ accelerations = []
 
 
 
-def force_musculaire(i, k, creatures, forces_creatures_points):
-    """Calcule la force musculaire pour les points voisins du point k de la ième créature"""
+"""def force_musculaire(i, k, creatures, forces_creatures_points):
+    #Calcule la force musculaire pour les points voisins du point k de la ième créature
     nb_vois = nombre_de_voisins(k, i, creatures)
     for index, voisin in enumerate(creatures[i][1][k]) :
         if voisin != 0 :
-            forces[i][index][1] += forces_creatures_points[i][k] / nb_vois
+            forces[i][index][1] += forces_creatures_points[i][k] / nb_vois"""
 
 def nombre_de_voisins(k, i, creatures):
     """Calcule le nombre de voisins du point k de la ième créature"""
@@ -36,7 +41,28 @@ def nombre_de_voisins(k, i, creatures):
             nb += 1
     return nb
 
-def force_rappel(i,j,creature):
+def frottement_eau(v_moy,vitesse:np.ndarray,position:np.ndarray,t,alpha:float = 1):  #UNE créature
+    """Retourne les forces appliquées à chaque sommet i d'une créature dû à l'eau"""
+    l=len(position)
+    F_visq = np.zeros(l)
+    v_reel = vitesse - v_moy*np.ones(l)
+    AB = [0,0]
+    for i in range(l):
+        if i!=l-1:
+            AB = position[i+1,t-1]-position[i,t-1]
+        cos_theta = np.dot(AB,[1,0])
+        sin_theta = np.sqrt(np.max(0,1-cos_theta^2))
+        u_theta = -cos_theta*[1,0] + sin_theta*[0,1]
+        v_orad_bout = (np.dot(v_reel[i,t-1],u_theta))*u_theta   # Vitesse ortho_radiale du bout du segment
+        F_norm =  alpha*(v_orad_bout/2)^2                        # Force du point à r/2
+        F_visq[i][0] = F_norm*cos_theta                 
+        F_visq[i][1] = F_norm*sin_theta
+    
+
+    return F_visq
+
+
+def force_rappel(i,j,creature):  #Erronée
     k = 100e10
     mi,mj = creature[i][0], creature[j][0]
     l = ((mi[0] - mj[0])**2 + (mi[1] - mj[1])**2)**0.5
