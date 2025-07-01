@@ -39,16 +39,19 @@ def frottement_eau(v_moy,vitesse:np.ndarray,position:np.ndarray,t,alpha:float = 
     """Retourne les forces appliquées à chaque sommet i d'une créature dû à l'eau"""
     l=len(position)
     F_visq = np.zeros(l)
-    v_reel = vitesse - v_moy*np.ones(l)
+    print(np.shape(vitesse[:,t-1]))
+    print(np.shape(v_moy))
+    print(np.shape(v_moy*np.ones(1)))
+    v_reel = vitesse[:,t-1] - np.tile(v_moy, (l,1))
     AB = [0,0]
     for i in range(l):
         if i!=l-1:
             AB = position[i+1,t-1]-position[i,t-1]
         cos_theta = np.dot(AB,[1,0])
-        sin_theta = np.sqrt(np.max(0,1-cos_theta^2))
+        sin_theta = np.sqrt(np.max(0,1-cos_theta**2))
         u_theta = -cos_theta*[1,0] + sin_theta*[0,1]
-        v_orad_bout = (np.dot(v_reel[i,t-1],u_theta))*u_theta   # Vitesse ortho_radiale du bout du segment
-        F_norm =  alpha*(v_orad_bout/2)^2                        # Force du point à r/2
+        v_orad_bout = (np.dot(v_reel[i,t-1],u_theta))*u_theta    # Vitesse ortho_radiale du bout du segment
+        F_norm =  alpha*(v_orad_bout/2)**2                        # Force du point à r/2
         F_visq[i][0] = F_norm*cos_theta                 
         F_visq[i][1] = F_norm*sin_theta
     
@@ -68,7 +71,7 @@ def force_rappel(i,j,creature):  #Erronée
 def pfd(liste_force, t, mass=1):
     """
     forces: (n_nodes, n_interval_time, n_forces, 2)
-    retourne : accelerations of shape (n_nodes, n_interval_time, 2)
+    retourne : accelerations de chaque noeud (n_nodes, n_interval_time, 2)
     """
     total_force = np.sum(liste_force[:,t], axis=1)  # shape: (n_nodes, n_interval_time, 2)
     accelerations = total_force / mass
@@ -80,8 +83,7 @@ def vitesse_moyenne(vitesse, t):
     t: float
     retourne : moyenne des vitesses sur le temps t
     """
-    vitesse_moy = np.mean(vitesse[:, int(t)], axis=0)  # liste de 2 éléments : v_moy_x, v_moy_y
-    vitesse_moy = np.linalg.norm(vitesse_moy)  # norme de la vitesse
+    vitesse_moy = np.sum(vitesse[:, t], axis=0)  # liste de 2 éléments : v_moy_x, v_moy_y
     return vitesse_moy
 
 vit = np.array([[[4,8],[2,3]],[[1,2],[3,4]],[[0,0],[1,1]]])  # Exemple de vitesses pour 3 noeuds et 2 temps
@@ -98,6 +100,25 @@ def energie_cinetique(vitesse, t, masse = 1):
 
 print("Energie cinétique", energie_cinetique(vit, 1))  # Affiche l'énergie cinétique pour les vitesses données
 
+"""
+Test créature - la Méduse :
+"""
+pos = np.array([[100,100], [150,150], [100,200]])
+matrice_adjacence = np.array([[0,1,0], [1,0,1], [0,1,0]])
+
+#Calcul les longueurs à vide dans une matrice d'adjacence
+def neighbors(pos, matrice_adjacence):
+    l0 = np.zeros((len(pos), len(pos)))
+    for i,point in enumerate(matrice_adjacence):
+        for j,voisin in enumerate(point):
+            if voisin != 0:
+                l0[i,j] = np.linalg.norm(pos[i]-pos[j])
+    return l0
+
+meduse = [pos, matrice_adjacence]
+
+
+
 
 #test de forces aléatoires
  
@@ -106,12 +127,13 @@ force_initial = [[[[15,12],[0,0]],[[7,4],[1,3]],[[0,0],[0,0]]] , [[[-25,-22],[-1
 
 
 #calcul_position(np.Array()#cycle de forces de la créature, float #pas de temps, float #temps de simul, int #nombre de noeuds) -> vitesse et position 
-def calcul_position(f_musc_periode, dt = 1/60, T = 10., n_nodes=2):
+def calcul_position(creature,f_musc_periode, dt = 1/60, T = 10.):
 
-    #liste_forces = [ f_eau, f_musc, f_rap ]
-
-    pos = [[100,100], [100,300]] #test pos initial pour 2 noeuds
-    neigh = [[0,200], [200,0]]   
+    n_nodes = len(pos)
+    pos_init, matrice_adjacence = creature[0], creature[1]
+    l0 = neighbors(pos_init, matrice_adjacence)
+    #pos = [[100,100], [100,300]] #test pos initial pour 2 noeuds
+    #neigh = [[0,200], [200,0]]   
 
     #Nombre d'itérations
     n_interval_time = int(T/dt)  
@@ -134,12 +156,12 @@ def calcul_position(f_musc_periode, dt = 1/60, T = 10., n_nodes=2):
     f_rap = np.zeros((n_nodes, n_interval_time, 2)) #shape = (N_noeuds, N_t, 2)
 
     #Condition initiale de position
-    xy[:,0] = pos
+    xy[:,0] = pos_init
 
     #Calcul itératif des forces/vitesses et positions
     for t in range(1,int(n_interval_time)):
         #calcul de la force de frottement liée à l'eau
-        f_eau[t] = frottement_eau(v[:,t-1], xy[:,t-1], t)# fonction de xy[:,t-1]
+        f_eau[t] = frottement_eau(vitesse_moyenne(v,t),v, xy, t)# fonction de xy[:,t-1]
 
         #force de rappel en chacun des sommets
         f_rap[t] = force_rappel(1,2,3) # fonction de v[:t-1] et xy[:,t-1]
@@ -200,7 +222,7 @@ def check_line_cross(creature:np.ndarray)->np.ndarray: # Fonction naïve pour em
 
 
 forces = []
-pos  = calcul_position(force_initial)[1]
+pos  = calcul_position(meduse, force_initial)[1]
 t = 0
 
 
