@@ -197,7 +197,7 @@ def calcul_position(creature,f_musc_periode, dt = 1/60, T = 10.):
         #calcul de la force de frottement liée à l'eau
         #f_eau[:,t] = 0 #frottement_eau(vitesse_moyenne(v,t),v, xy, t)# fonction de xy[:,t-1]
         #force de rappel en chacun des sommets
-        f_rap[:,t] = force_rappel(xy, l0, t) 
+        f_rap[:,t] = force_rappel(xy, l0, t-1) 
         #Array rassemblant les différentes forces
         liste_forces = np.array([f_rap, f_eau,f_musc])
         
