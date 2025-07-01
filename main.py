@@ -1,5 +1,8 @@
 import pygame
 import numpy as np
+import random as rd
+
+rd.seed(42)
 
 pygame.init()
 # Set up the display
@@ -299,6 +302,11 @@ def neighbors(pos, matrice_adjacence):
             if voisin != 0:
                 l0[i,j] = np.linalg.norm(pos[i]-pos[j])
     return l0
+
+def bubulle(centre_masse,v_moy):
+    
+    return None
+
 
 meduse = [pos, matrice_adjacence]
 med2 = [pos2, matrice_adjacence]
