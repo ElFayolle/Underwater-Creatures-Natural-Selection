@@ -153,7 +153,7 @@ meduse = [pos, matrice_adjacence]
 
 #test de forces aléatoires
  
-force_initial = [[[[15,12],[0,0]],[[7,4],[1,3]],[[0,0],[0,0]]] , [[[-25,-22],[-10,-10]],[[-17,-14],[-1,-3]],[[0,0],[0,0]]]]
+force_initial = [[[[15,12]],[[7,4]],[[0,0]]] , [[[-25,-22]],[[-17,-14]],[[0,2]]]]
 
 
 
@@ -192,11 +192,11 @@ def calcul_position(creature,f_musc_periode, dt = 1/60, T = 10.):
     #Calcul itératif des forces/vitesses et positions
     for t in range(1,int(n_interval_time)):
         #calcul de la force de frottement liée à l'eau
-        #f_eau[t] = 0 #frottement_eau(vitesse_moyenne(v,t),v, xy, t)# fonction de xy[:,t-1]
+        #f_eau[:,t] = 0 #frottement_eau(vitesse_moyenne(v,t),v, xy, t)# fonction de xy[:,t-1]
 
         #force de rappel en chacun des sommets
-        f_rap[t] = force_rappel(xy, l0) # fonction de v[:t-1] et xy[:,t-1]
-
+        f_rap[:,t] = force_rappel(xy, l0, t) 
+        print(np.shape(f_rap), np.shape(f_eau), np.shape(f_musc))
         #Array rassemblant les différentes forces
         liste_forces = np.array([f_rap, f_eau,f_musc])
         
