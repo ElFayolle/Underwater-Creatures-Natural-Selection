@@ -79,7 +79,7 @@ def force_rappel(positions,l0,t):  #Renvoie la force de rappel totale qui s'appl
     """positions: (n_nodes, t, 2) # Positions des noeuds
     l0 : (n_nodes, n_nodes) # Longueurs de repos des liens entre les noeuds
     retourne : forces de rappel totale qui s'applique sur chaque noeud de la créature, shape (n_nodes, 2)"""
-    k = 0 # Constante de raideur du ressort
+    k = 1 # Constante de raideur du ressort
     pos = positions[:, t]  # On prend les positions au temps t
     # Étendre les positions pour faire des soustractions vectorisées
     pos_i = pos[:, np.newaxis, :]     # shape (n, 1, 2)
@@ -106,7 +106,15 @@ def force_rappel(positions,l0,t):  #Renvoie la force de rappel totale qui s'appl
     # Résultat : F[i,j] est la force exercée sur le nœud j par le ressort entre i et j
     forces = F.sum(axis=0)
     
-    return forces
+    return forces,pos
+
+a = np.array([[0, 2, 3],
+              [2, 0, 0],
+              [3, 0, 0]])   # Longueurs à vide
+b = np.array([[[0., 0.]],
+              [[3., 0.]],
+              [[0., 4.]]])     # Positions
+print("Force de rappel", force_rappel(b, a, 0))  # Affiche les forces de rappel pour les positions et longueurs à vide données
 
 
 def pfd(liste_force, t, mass=1):
