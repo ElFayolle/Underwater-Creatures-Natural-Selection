@@ -56,17 +56,17 @@ def frottement_eau(vitesse:np.ndarray,neighbours:np.ndarray,position:np.ndarray,
     for i in range(l-1):
         for index, voisin in enumerate(neighbours[i]):
             if voisin!=0:
-                BA = -position[i+1,t-1]+position[i,t-1] # Vecteur BA avec A le premier sommet 
+                BA = -position[i+1,t]+position[i,t] # Vecteur BA avec A le premier sommet 
                 cos_theta = np.dot(BA,np.array([1,0]))/np.linalg.norm(BA)
                 sin_theta = np.dot(BA,np.array([0,1]))/np.linalg.norm(BA)
                 u_theta = +cos_theta*np.array([0,1]) - sin_theta*np.array([1,0])
-                v_orad_bout = (np.dot(vitesse[i,t-1]-v_moy,u_theta))*u_theta   # Vitesse ortho_radiale du bout du segment
+                v_orad_bout = (np.dot(vitesse[i,t]-v_moy,u_theta))*u_theta   # Vitesse ortho_radiale du bout du segment
                 F_visq[i] =  - alpha*(np.linalg.norm(v_orad_bout)/4)*v_orad_bout                        # Force du point à r/2
 
     # Le dernier sommet correspond à inverser le calcul: on regarde l'angle de l'autre bout du bras donc on "déphase" de pi, cos= -cos, sin = -sin
 
     u_theta = -u_theta
-    v_orad_bout = (np.dot(vitesse[l-1,t-1]-v_moy,u_theta))*u_theta   
+    v_orad_bout = (np.dot(vitesse[l-1,t]-v_moy,u_theta))*u_theta   
     F_visq[l-1] =  - alpha*(np.linalg.norm(v_orad_bout)/4)*v_orad_bout
     
     return F_visq
@@ -124,7 +124,7 @@ def vitesse_moyenne(vitesse, t):
     t: float
     retourne : moyenne des vitesses sur le temps t
     """
-    vitesse_moy = np.sum(vitesse[:, t], axis=0)  # liste de 2 éléments : v_moy_x, v_moy_y
+    vitesse_moy = np.mean(vitesse[:, t], axis=0)  # liste de 2 éléments : v_moy_x, v_moy_y
     return vitesse_moy
 
 vit = np.array([[[4,8],[2,3]],[[1,2],[3,4]],[[0,0],[1,1]]])  # Exemple de vitesses pour 3 noeuds et 2 temps
@@ -161,6 +161,7 @@ def calcul_position(creature,f_musc_periode, dt = 1/60, T = 10.):
     n_nodes = len(pos)
     pos_init, matrice_adjacence = creature[0], creature[1]
     l0 = neighbors(pos_init, matrice_adjacence)
+
     #pos = [[100,100], [100,300]] #test pos initial pour 2 noeuds
     #neigh = [[0,200], [200,0]]   
 
@@ -189,11 +190,15 @@ def calcul_position(creature,f_musc_periode, dt = 1/60, T = 10.):
 
     #Calcul itératif des forces/vitesses et positions
     for t in range(1,int(n_interval_time)):
+        if delta_t_amort>t_amort:
+            to_amortir = False
+            delta_t_amort = 0
         #calcul de la force de frottement liée à l'eau
-        f_eau[:,t] = frottement_eau(v,matrice_adjacence,xy,t)
+        f_eau[:,t] = frottement_eau(v,matrice_adjacence,xy,t-1)
 
         #force de rappel en chacun des sommets
-        f_rap[:,t] = force_rappel(xy, l0, t-1) 
+        f_rap[:,t] = force_rappel(xy, l0, t-1)
+        
         #Array rassemblant les différentes forces
         liste_forces = np.array([f_rap, f_eau,f_musc])
         
@@ -210,6 +215,7 @@ def calcul_position(creature,f_musc_periode, dt = 1/60, T = 10.):
 #Fonction qui calcule le "score" de chaque créature - amené à changer.
 def score(energie, distance, taille):
     score = 2/3*distance/max(distance) + 1/3* energie/taille * max(taille/energie)
+    return score
 
 def iter_score(position, vitesse): # Calcule les grandeurs liées au score d'UNE créature
     masse = len(position)   # masse et taille sont identiques ici
