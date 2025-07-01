@@ -36,23 +36,32 @@ def nombre_de_voisins(k, i, creatures):
             nb += 1
     return nb
 
-def frottement_eau(v_moy,vitesse:np.ndarray,position:np.ndarray,t,alpha:float = 1):  #UNE créature
+def frottement_eau(v_moy,vitesse:np.ndarray,position:np.ndarray,t,alpha:float = 1):  #UNE créature, UNE vitesse associée. Shapes = [N_noeuds,N_t,2]
     """Retourne les forces appliquées à chaque sommet i d'une créature dû à l'eau"""
     l=len(position)
     F_visq = np.zeros(l)
     v_reel = vitesse - v_moy*np.ones(l)
-    AB = [0,0]
-    for i in range(l):
-        if i!=l-1:
-            AB = position[i+1,t-1]-position[i,t-1]
-        cos_theta = np.dot(AB,[1,0])
+
+    for i in range(l-1):
+        BA = -position[i+1,t-1]+position[i,t-1] # Vecteur BA avec A le premier sommet 
+        cos_theta = np.dot(BA,[1,0])/np.norm(BA)
         sin_theta = np.sqrt(np.max(0,1-cos_theta^2))
-        u_theta = -cos_theta*[1,0] + sin_theta*[0,1]
+        u_theta = +cos_theta*[0,1] - sin_theta*[1,0]
         v_orad_bout = (np.dot(v_reel[i,t-1],u_theta))*u_theta   # Vitesse ortho_radiale du bout du segment
         F_norm =  alpha*(v_orad_bout/2)^2                        # Force du point à r/2
-        F_visq[i][0] = F_norm*cos_theta                 
-        F_visq[i][1] = F_norm*sin_theta
+        F_visq[i][0] = F_norm*(-sin_theta)                 
+        F_visq[i][1] = F_norm*cos_theta
     
+    # Le dernier sommet correspond à inverser le calcul: on regarde l'angle de l'autre bout du bras donc on "déphase" de pi, cos= -cos, sin = -sin
+    u_theta = -u_theta
+    v_orad_bout = (np.dot(v_reel[l,t-1],u_theta))*u_theta   
+    F_norm =  alpha*(v_orad_bout/2)^2 
+    F_visq[l][0] = F_norm*(sin_theta)
+    F_visq[l][1] = F_norm*(-cos_theta)
+
+    return F_visq
+    
+
 
     return F_visq
 
@@ -125,35 +134,46 @@ def score(energie, distance, taille):
 def check_line_cross(creature:np.ndarray)->np.ndarray: # Fonction naïve pour empêcher les croisements de segments
     l = len(creature)
 
-    #Tableau booléens d'intersection du segment i "[AB]" au segment j "[CD]""
+    # Tableau booléens d'intersection du segment i "[AB]" au segment j "[CD]""
     pt_intersec = np.zeros((l-1,l-1)) 
 
     # Calcul des droites passant par chaque segment
     for i in range(l-1):
-        for j in range(l-1):  
+        for j in range(l-1): 
+            is_straight_1,is_straight_2 = False, False 
             delta_x_1 = (creature[i+1][0]-creature[i][0]) 
             delta_x_2 = (creature[j+1][0]-creature[j][0])
             if delta_x_1 <=1e-6:
-                coeff_droite_1 = 0
+                is_straight_1 = True
             else:
                 coeff_droite_1 = (creature[i+1][1]-creature[i][1])/delta_x_1    # Delta y sur delta x pour les coefficients affines 
             if delta_x_2 <=1e-6:
-                coeff_droite_2 = 0
+                is_straight_2 = True
             else:
-                coeff_droite_2 = (creature[j+1][1]-creature[j][1])/delta_x_2
-            ordonnée_origine_1 = creature[i][1] - coeff_droite_1*creature[i]    # On caclule l'ordonnée à l'origine de chaque droite
-            ordonnée_origine_2 = creature[j][1] - coeff_droite_1*creature[j]
+                coeff_droite_2 = (creature[j+1][1]-creature[j][1])/delta_x_2   
+            if not is_straight_1:    
+                ordonnée_origine_1 = creature[i][1] - coeff_droite_1*creature[i]    # On caclule l'ordonnée à l'origine de chaque droite
+            if not is_straight_2:
+                ordonnée_origine_2 = creature[j][1] - coeff_droite_1*creature[j]
 
         
-        # Booléens:
-        above_CD_A = (coeff_droite_2*creature[i][0] + ordonnée_origine_2 <= creature[i][1] )
-        above_CD_B = (coeff_droite_2*creature[i+1][0] + ordonnée_origine_2 <= creature[i+1][1])
-        above_AB_C = (coeff_droite_1*creature[j][0] + ordonnée_origine_1 <= creature[j][1])
-        above_AB_D = (coeff_droite_1*creature[j+1][0] + ordonnée_origine_1 <= creature[j+1][1])
+            # Booléens:
+            if is_straight_2:
+                above_CD_A = (creature[j][0] <= creature[i][0])    # Above = à droite si la ligne est verticale pure
+                above_CD_B = (creature[j][0] <= creature[i+1][0])
+            else: 
+                above_CD_A = (coeff_droite_2*creature[i][0] + ordonnée_origine_2 <= creature[i][1] )
+                above_CD_B = (coeff_droite_2*creature[i+1][0] + ordonnée_origine_2 <= creature[i+1][1])
+            if is_straight_1:
+                above_AB_C = (creature[i][0] <= creature[j][0])
+                above_AB_D = (creature[i][0] <= creature[j+1][0])
+            else:
+                above_AB_C = (coeff_droite_1*creature[j][0] + ordonnée_origine_1 <= creature[j][1])
+                above_AB_D = (coeff_droite_1*creature[j+1][0] + ordonnée_origine_1 <= creature[j+1][1])
 
-        # Si les segments se croisent chaque point est de part et d'autre des deux droites définies:
-        if (above_AB_C != above_AB_D ) and (above_CD_A != above_CD_B):  # Si chaque couple de point est de part et d'autre du segment réciproque, il y a intersection !
-            pt_intersec[i][j]=1
+            # Si les segments se croisent chaque point est de part et d'autre des deux droites définies:
+            if (above_AB_C != above_AB_D ) and (above_CD_A != above_CD_B):  # Si chaque couple de point est de part et d'autre du segment réciproque, il y a intersection !
+                pt_intersec[i][j]=1
         
     return pt_intersec
 
