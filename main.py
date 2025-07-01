@@ -1,8 +1,5 @@
 import pygame
 import numpy as np
-import random as rd
-
-rd.seed(42)
 
 pygame.init()
 # Set up the display
@@ -144,6 +141,8 @@ def energie_cinetique(vitesse, t, masse = 1):
 print("Energie cinétique", energie_cinetique(vit, 1))  # Affiche l'énergie cinétique pour les vitesses données
 
 
+def distance(position,t):
+    return round(np.linalg.norm(centre_de_masse(position,t)-centre_de_masse(position,0)),0)
 
 
 
@@ -167,7 +166,7 @@ def calcul_position(creature,f_musc_periode, dt = 1/60, T = 10.):
     #Nombre d'itérations
     n_interval_time = int(T/dt)  
     # Forces qui boucle sur la période cyclique de force donnée
-    f_musc = np.array([[f_musc_periode[i][j%len(f_musc_periode[i])] for j in range(n_interval_time)] for i in range(len(f_musc_periode))])  *100
+    f_musc = np.array([[f_musc_periode[i][j%len(f_musc_periode[i])] for j in range(n_interval_time)] for i in range(len(f_musc_periode))])  *300
     #f_musc = np.zeros((n_nodes, n_interval_time,2))
     #accéleration en chaque noeud
     a = np.zeros((n_nodes, n_interval_time, 2))     #shape = (N_noeuds, N_t, 2)
@@ -283,7 +282,19 @@ def get_offset(barycentre, screen_width, screen_height):
     screen_center = np.array([screen_width // 2, screen_height // 2])
     return screen_center - barycentre
 
+def instantiate_bubbles(N_bubbles,rmax=10):
+    bubbles = np.random.rand(N_bubbles,3)
+    bubbles[:,0] *= width
+    bubbles[:,1] *= height
+    bubbles[:,2] *= rmax
+    print(bubbles.shape)
+    return bubbles
 
+def draw_bubbles(bubbles,offset,barycentre,v_moy,t):
+    for index,bubble in enumerate(bubbles):
+        pygame.draw.circle(screen,(109,169,197),bubble[:-1]+offset,bubble[2])
+        print("drawn !", bubble)
+    return None
 
 
 
@@ -305,9 +316,7 @@ def neighbors(pos, matrice_adjacence):
                 l0[i,j] = np.linalg.norm(pos[i]-pos[j])
     return l0
 
-def bubulle(centre_masse,v_moy):
-    
-    return None
+
 
 
 meduse = [pos, matrice_adjacence]
@@ -330,8 +339,9 @@ pos  = calcul_position(meduse, force_initial)[1]
 pos2 = calcul_position(med2,force_initial)[1]
 t = 0
 
-#fond = pygame.image.load("fond.jpg").convert()
-#fond = pygame.transform.scale(fond, (WIDTH, HEIGHT))
+
+#Test bulles
+bubbles = instantiate_bubbles(30)
 
 while running and t < 10/(1/60):
     for event in pygame.event.get():
@@ -342,9 +352,14 @@ while running and t < 10/(1/60):
             
 
     screen.fill((0, 128, 255))
-    offset = get_offset(centre_de_masse(pos, t), WIDTH, HEIGHT)
-    draw_creature(pos,t)
-    draw_creature(pos2,t)
+    barycentre = centre_de_masse(pos, t)
+    offset = get_offset(centre_de_masse(pos, t), WIDTH,HEIGHT)
+    draw_bubbles(bubbles,offset,barycentre,0,t)
+    draw_creature(pos,t, offset)
+    font=pygame.font.Font(None, 24)
+    text = font.render("distance : " + str(distance(pos,t)),1,(255,255,255))
+    screen.blit(text, (10, 10))
+    #draw_creature(pos2,t)
     
     pygame.display.flip()
     clock.tick(60)
