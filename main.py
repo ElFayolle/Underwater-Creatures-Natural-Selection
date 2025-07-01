@@ -3,8 +3,8 @@ import numpy as np
 
 pygame.init()
 # Set up the display
-width, height = 800, 600
-screen = pygame.display.set_mode((width, height))
+WIDTH, HEIGHT = 800, 600
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Natural Selection Simulation")
 # Set up the clock for frame rate control
 clock = pygame.time.Clock()
@@ -75,7 +75,7 @@ def force_rappel(positions,l0,t):  #Renvoie la force de rappel totale qui s'appl
     """positions: (n_nodes, t, 2) # Positions des noeuds
     l0 : (n_nodes, n_nodes) # Longueurs de repos des liens entre les noeuds
     retourne : forces de rappel totale qui s'applique sur chaque noeud de la créature, shape (n_nodes, 2)"""
-    k = 5*10e-1 # Constante de raideur du ressort
+    k = 5e-1 # Constante de raideur du ressort
     pos = positions[:, t]  # On prend les positions au temps t
     # Étendre les positions pour faire des soustractions vectorisées
     pos_i = pos[:, np.newaxis, :]     # shape (n, 1, 2)
@@ -141,6 +141,8 @@ def energie_cinetique(vitesse, t, masse = 1):
 print("Energie cinétique", energie_cinetique(vit, 1))  # Affiche l'énergie cinétique pour les vitesses données
 
 
+def distance(position,t):
+    return round(np.linalg.norm(centre_de_masse(position,t)-centre_de_masse(position,0)),0)
 
 
 
@@ -164,7 +166,7 @@ def calcul_position(creature,f_musc_periode, dt = 1/60, T = 10.):
     #Nombre d'itérations
     n_interval_time = int(T/dt)  
     # Forces qui boucle sur la période cyclique de force donnée
-    f_musc = np.array([[f_musc_periode[i][j%len(f_musc_periode[i])] for j in range(n_interval_time)] for i in range(len(f_musc_periode))])  *100
+    f_musc = np.array([[f_musc_periode[i][j%len(f_musc_periode[i])] for j in range(n_interval_time)] for i in range(len(f_musc_periode))])  *300
     #f_musc = np.zeros((n_nodes, n_interval_time,2))
     #accéleration en chaque noeud
     a = np.zeros((n_nodes, n_interval_time, 2))     #shape = (N_noeuds, N_t, 2)
@@ -337,6 +339,7 @@ pos  = calcul_position(meduse, force_initial)[1]
 pos2 = calcul_position(med2,force_initial)[1]
 t = 0
 
+
 #Test bulles
 bubbles = instantiate_bubbles(30)
 
@@ -350,9 +353,12 @@ while running and t < 10/(1/60):
 
     screen.fill((0, 128, 255))
     barycentre = centre_de_masse(pos, t)
-    offset = get_offset(centre_de_masse(pos, t), width, height)
+    offset = get_offset(centre_de_masse(pos, t), WIDTH,HEIGHT)
     draw_bubbles(bubbles,offset,barycentre,0,t)
     draw_creature(pos,t, offset)
+    font=pygame.font.Font(None, 24)
+    text = font.render("distance : " + str(distance(pos,t)),1,(255,255,255))
+    screen.blit(text, (10, 10))
     #draw_creature(pos2,t)
     
     pygame.display.flip()
