@@ -105,7 +105,7 @@ def force_rappel(positions,l0,t):  #Renvoie la force de rappel totale qui s'appl
     # Résultat : F[i,j] est la force exercée sur le nœud j par le ressort entre i et j
     forces = F.sum(axis=0)
     
-    return forces,pos
+    return forces
 
 a = np.array([[0, 2, 3],
               [2, 0, 0],
