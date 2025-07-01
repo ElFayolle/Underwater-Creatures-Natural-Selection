@@ -79,7 +79,7 @@ def force_rappel(positions,l0,t):  #Renvoie la force de rappel totale qui s'appl
     """positions: (n_nodes, t, 2) # Positions des noeuds
     l0 : (n_nodes, n_nodes) # Longueurs de repos des liens entre les noeuds
     retourne : forces de rappel totale qui s'applique sur chaque noeud de la créature, shape (n_nodes, 2)"""
-    k = 0 # Constante de raideur du ressort
+    k = 10 # Constante de raideur du ressort
     pos = positions[:, t]  # On prend les positions au temps t
     # Étendre les positions pour faire des soustractions vectorisées
     pos_i = pos[:, np.newaxis, :]     # shape (n, 1, 2)
@@ -184,12 +184,11 @@ def calcul_position(creature,f_musc_periode, dt = 1/60, T = 10.):
 
     #Condition initiale de position
     xy[:,0] = pos_init
-
+    import time
     #Calcul itératif des forces/vitesses et positions
     for t in range(1,int(n_interval_time)):
         #calcul de la force de frottement liée à l'eau
         #f_eau[:,t] = 0 #frottement_eau(vitesse_moyenne(v,t),v, xy, t)# fonction de xy[:,t-1]
-
         #force de rappel en chacun des sommets
         f_rap[:,t] = force_rappel(xy, l0, t) 
         #Array rassemblant les différentes forces
@@ -197,11 +196,15 @@ def calcul_position(creature,f_musc_periode, dt = 1/60, T = 10.):
         
         #Somme des forces et calcul du PFD au temps t
         a[:,t] = pfd(liste_forces, t)
+        print(f"Force rappel : {f_rap[0,t]}, Force musc : {f_musc[0,t]}")
+        print(f"pfd : {pfd(liste_forces,t)[0]}")
+
         
         #Calcul de la vitesse et position au temps t
         v[:, t] = v[:, t-1] + dt * a[:, t-1]
         xy[:, t] = xy[:, t-1] + dt * v[:, t-1]
-
+        print(f"a : {a[0,t]}, v : {v[0,t]}, pos : {xy[0,t]}")
+        time.sleep(1)
     return (v, xy)
 
 
