@@ -284,8 +284,8 @@ def get_offset(barycentre, screen_width, screen_height):
 
 def instantiate_bubbles(N_bubbles,rmax=10):
     bubbles = np.random.rand(N_bubbles,3)
-    bubbles[:,0] *= width
-    bubbles[:,1] *= height
+    bubbles[:,0] *= WIDTH
+    bubbles[:,1] *= HEIGHT
     bubbles[:,2] *= rmax
     print(bubbles.shape)
     return bubbles
