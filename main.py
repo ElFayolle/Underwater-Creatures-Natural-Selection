@@ -20,12 +20,12 @@ accelerations = []
 
 
 
-def force_musculaire(i, k, creatures, forces_creatures_points):
-    """Calcule la force musculaire pour les points voisins du point k de la ième créature"""
+"""def force_musculaire(i, k, creatures, forces_creatures_points):
+    #Calcule la force musculaire pour les points voisins du point k de la ième créature
     nb_vois = nombre_de_voisins(k, i, creatures)
     for index, voisin in enumerate(creatures[i][1][k]) :
         if voisin != 0 :
-            forces[i][index][1] += forces_creatures_points[i][k] / nb_vois
+            forces[i][index][1] += forces_creatures_points[i][k] / nb_vois"""
 
 def nombre_de_voisins(k, i, creatures):
     """Calcule le nombre de voisins du point k de la ième créature"""
@@ -35,7 +35,28 @@ def nombre_de_voisins(k, i, creatures):
             nb += 1
     return nb
 
-def force_rappel(i,j,creature):
+def frottement_eau(v_moy,vitesse:np.ndarray,position:np.ndarray,t,alpha:float = 1):  #UNE créature
+    """Retourne les forces appliquées à chaque sommet i d'une créature dû à l'eau"""
+    l=len(position)
+    F_visq = np.zeros(l)
+    v_reel = vitesse - v_moy*np.ones(l)
+    AB = [0,0]
+    for i in range(l):
+        if i!=l-1:
+            AB = position[i+1,t-1]-position[i,t-1]
+        cos_theta = np.dot(AB,[1,0])
+        sin_theta = np.sqrt(np.max(0,1-cos_theta^2))
+        u_theta = -cos_theta*[1,0] + sin_theta*[0,1]
+        v_orad_bout = (np.dot(v_reel[i,t-1],u_theta))*u_theta   # Vitesse ortho_radiale du bout du segment
+        F_norm =  alpha*(v_orad_bout/2)^2                        # Force du point à r/2
+        F_visq[i][0] = F_norm*cos_theta                 
+        F_visq[i][1] = F_norm*sin_theta
+    
+
+    return F_visq
+
+
+def force_rappel(i,j,creature):  #Erronée
     k = 100e10
     mi,mj = creature[i][0], creature[j][0]
     l = ((mi[0] - mj[0])**2 + (mi[1] - mj[1])**2)**0.5
@@ -52,6 +73,30 @@ def pfd(liste_force, t, mass=1):
     total_force = np.sum(liste_force[:,t], axis=1)  # shape: (n_nodes, n_interval_time, 2)
     accelerations = total_force / mass
     return accelerations
+
+def vitesse_moyenne(vitesse, t):
+    """
+    vitesse: (n_nodes, n_interval_time, 2)
+    t: float
+    retourne : moyenne des vitesses sur le temps t
+    """
+    vitesse_moy = np.mean(vitesse[:, int(t)], axis=0)  # liste de 2 éléments : v_moy_x, v_moy_y
+    vitesse_moy = np.linalg.norm(vitesse_moy)  # norme de la vitesse
+    return vitesse_moy
+
+vit = np.array([[[4,8],[2,3]],[[1,2],[3,4]],[[0,0],[1,1]]])  # Exemple de vitesses pour 3 noeuds et 2 temps
+print("vitesse",vitesse_moyenne(vit, 1))  # Affiche la vitesse moyenne au temps t=1
+
+def energie_cinetique(vitesse, t, masse = 1):
+    """
+    vitesse: (n_nodes, n_interval_time, 2)
+    retourne : énergie cinétique de la créature
+    """
+    vitesse_norm = np.linalg.norm(vitesse[:, int(t)], axis=1)  # norme de la vitesse pour chaque noeud
+    energie = 0.5 * masse * np.sum(vitesse_norm**2)  # somme des énergies cinétiques
+    return energie
+
+print("Energie cinétique", energie_cinetique(vit, 1))  # Affiche l'énergie cinétique pour les vitesses données
 
 
 #test de forces aléatoires
@@ -159,7 +204,7 @@ pos  = calcul_position(force_initial)[1]
 t = 0
 
 
-while running and t < 10/(1/60):
+"""while running and t < 10/(1/60):
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -177,7 +222,7 @@ while running and t < 10/(1/60):
 
     pygame.display.flip()
     clock.tick(60)
-    t += 1
+    t += 1"""
 
 # Quit Pygame
 pygame.quit()
