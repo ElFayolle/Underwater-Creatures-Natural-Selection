@@ -71,6 +71,9 @@ def frottement_eau(v_moy,vitesse:np.ndarray,position:np.ndarray,t,alpha:float = 
 
 
 def force_rappel(positions,l0):  #Renvoie la force de rappel totale qui s'applique sur chaque noeud d'une créature
+    """positions: (n_nodes, 2) # Positions des noeuds
+    l0 : (n_nodes, n_nodes) # Longueurs de repos des liens entre les noeuds
+    retourne : forces de rappel totale qui s'applique sur chaque noeud de la créature, shape (n_nodes, 2)"""
     k = 10 # Constante de raideur du ressort
     n = len(positions) # Nombre de noeuds
     # Étendre les positions pour faire des soustractions vectorisées
