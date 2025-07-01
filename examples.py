@@ -2,18 +2,21 @@ import numpy as np
 import matplotlib.pyplot as plt
 import random
 import math
-#from main import check_line_cross
+
 
 LENGTH = 20
 
-def croisement(positions):
-    """Vrai ou faux selon si le dernier segment ajouté à la créature croise un segment existant (vrai pour croisement)"""
-    matrice_croisements = check_line_cross(positions)
-    colonne = matrice_croisements[:,-1]
-    for k in colonne[:-1] :
-        if k != 0 :
+def point_exists(new_pos, positions, tol=1e-6):
+    """Fonction qui vérifie si le point new_pos recouvre un point déjà existant (vrai si recouvrement)"""
+    for p in positions:
+        if np.linalg.norm(np.array(new_pos) - np.array(p)) < tol:
             return True
     return False
+
+#def croisement(positions):
+#    matrice_croisements = check_line_cross(positions)
+#    colonne = matrice_croisements[:, -1]
+#    return np.any(colonne[:-1] != 0)
 
 
 def create_random_creature():
@@ -25,7 +28,7 @@ def create_random_creature():
     while i < num_points - 1 :
         base_index = random.randint(0, len(positions) - 1)
 
-        angle = random.randint(0, 360)
+        angle = random.randint(0,360)
         angle_rad = math.radians(angle)
         dy = LENGTH * math.sin(angle_rad)
         dx = LENGTH * math.cos(angle_rad)
@@ -35,8 +38,9 @@ def create_random_creature():
         new_pos = [positions[base_index][0] + dx, positions[base_index][1] + dy]
 
         # Éviter les doublons
-        if new_pos in positions:
+        if point_exists(new_pos, positions):
             continue
+            
 
         # Ajouter position
         positions.append(new_pos)
