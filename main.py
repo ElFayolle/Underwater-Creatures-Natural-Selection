@@ -1,7 +1,6 @@
 import pygame
 import numpy as np
 
-
 pygame.init()
 # Set up the display
 width, height = 800, 600
@@ -84,12 +83,38 @@ def pfd(liste_force, t, mass=1):
     accelerations = total_force / mass
     return accelerations
 
+def vitesse_moyenne(vitesse, t):
+    """
+    vitesse: (n_nodes, n_interval_time, 2)
+    t: float
+    retourne : moyenne des vitesses sur le temps t
+    """
+    vitesse_moy = np.mean(vitesse[:, int(t)], axis=0)  # liste de 2 éléments : v_moy_x, v_moy_y
+    vitesse_moy = np.linalg.norm(vitesse_moy)  # norme de la vitesse
+    return vitesse_moy
+
+vit = np.array([[[4,8],[2,3]],[[1,2],[3,4]],[[0,0],[1,1]]])  # Exemple de vitesses pour 3 noeuds et 2 temps
+print("vitesse",vitesse_moyenne(vit, 1))  # Affiche la vitesse moyenne au temps t=1
+
+def energie_cinetique(vitesse, t, masse = 1):
+    """
+    vitesse: (n_nodes, n_interval_time, 2)
+    retourne : énergie cinétique de la créature
+    """
+    vitesse_norm = np.linalg.norm(vitesse[:, int(t)], axis=1)  # norme de la vitesse pour chaque noeud
+    energie = 0.5 * masse * np.sum(vitesse_norm**2)  # somme des énergies cinétiques
+    return energie
+
+print("Energie cinétique", energie_cinetique(vit, 1))  # Affiche l'énergie cinétique pour les vitesses données
+
 
 #test de forces aléatoires
  
 force_initial = [[[[15,12],[0,0]],[[7,4],[1,3]],[[0,0],[0,0]]] , [[[-25,-22],[-10,-10]],[[-17,-14],[-1,-3]],[[0,0],[0,0]]]]
 
-#calcul_position(np.Array(), float #pas de temps, float #temps de simul, int #nombre de noeuds)
+
+
+#calcul_position(np.Array()#cycle de forces de la créature, float #pas de temps, float #temps de simul, int #nombre de noeuds) -> vitesse et position 
 def calcul_position(f_musc_periode, dt = 1/60, T = 10., n_nodes=2):
 
     #liste_forces = [ f_eau, f_musc, f_rap ]
@@ -100,25 +125,41 @@ def calcul_position(f_musc_periode, dt = 1/60, T = 10., n_nodes=2):
     #Nombre d'itérations
     n_interval_time = int(T/dt)  
     # Forces qui boucle sur la période cyclique de force donnée
-    f_musc = np.array([[f_musc_periode[i][j%len(f_musc_periode[i])] for j in range(n_interval_time)] for i in range(len(f_musc_periode))])    #CI vitesse 
-    v = np.zeros((n_nodes, int(n_interval_time), 2))  #shape = (N_noeuds, N_t, 2)
-    xy = np.zeros((n_nodes, int(n_interval_time), 2)) #shape = (N_noeuds, N_t, 2)
-    a = np.zeros((n_nodes, int(n_interval_time), 2))
-    f_eau = np.zeros((n_nodes, int(n_interval_time), 2))
-    f_rap = np.zeros((n_nodes, int(n_interval_time), 2))
-    print(np.shape(f_eau))
-    print(np.shape(f_rap))
-    print(np.shape(f_musc))
+    f_musc = np.array([[f_musc_periode[i][j%len(f_musc_periode[i])] for j in range(n_interval_time)] for i in range(len(f_musc_periode))])    
+
+    #accéleration en chaque noeud
+    a = np.zeros((n_nodes, n_interval_time, 2))     #shape = (N_noeuds, N_t, 2)
+
+    #vitesse en chaque noeud 
+    v = np.zeros((n_nodes, n_interval_time, 2))     #shape = (N_noeuds, N_t, 2)
+
+    #position en chaque noeud
+    xy = np.zeros((n_nodes, n_interval_time, 2))    #shape = (N_noeuds, N_t, 2)
+
+    #force de l'eau sur chaque sommet
+    f_eau = np.zeros((n_nodes, n_interval_time, 2)) #shape = (N_noeuds, N_t, 2)
+
+    #force de rappel en chaque sommet
+    f_rap = np.zeros((n_nodes, n_interval_time, 2)) #shape = (N_noeuds, N_t, 2)
+
+    #Condition initiale de position
     xy[:,0] = pos
 
-
+    #Calcul itératif des forces/vitesses et positions
     for t in range(1,int(n_interval_time)):
+        #calcul de la force de frottement liée à l'eau
         f_eau[t] = frottement_eau(v[:,t-1], xy[:,t-1], t)# fonction de xy[:,t-1]
-        f_rap[t] = force_rappel(1,2,3) # fonction de v[:t-1] et xy[:,t-1] ATTENDRE BASILE
+
+        #force de rappel en chacun des sommets
+        f_rap[t] = force_rappel(1,2,3) # fonction de v[:t-1] et xy[:,t-1]
+
+        #Array rassemblant les différentes forces
         liste_forces = np.array([f_rap, f_eau,f_musc])
         
+        #Somme des forces et calcul du PFD au temps t
         a[:,t] = pfd(liste_forces, t)
         
+        #Calcul de la vitesse et position au temps t
         v[:, t] = v[:, t-1] + dt * a[:, t-1]
         xy[:, t] = xy[:, t-1] + dt * v[:, t-1]
 
@@ -126,7 +167,7 @@ def calcul_position(f_musc_periode, dt = 1/60, T = 10., n_nodes=2):
 
 
 
-
+#Fonction qui calcule le "score" de chaque créature - amené à changer.
 def score(energie, distance, taille):
     score = 2/3*distance/max(distance) + 1/3* energie/taille * max(taille/energie)
 
@@ -183,7 +224,7 @@ pos  = calcul_position(force_initial)[1]
 t = 0
 
 
-while running and t < 10/(1/60):
+"""while running and t < 10/(1/60):
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -201,7 +242,7 @@ while running and t < 10/(1/60):
 
     pygame.display.flip()
     clock.tick(60)
-    t += 1
+    t += 1"""
 
 # Quit Pygame
 pygame.quit()
