@@ -69,7 +69,7 @@ def force_rappel(positions,l0,t):  #Renvoie la force de rappel totale qui s'appl
     """positions: (n_nodes, t, 2) # Positions des noeuds
     l0 : (n_nodes, n_nodes) # Longueurs de repos des liens entre les noeuds
     retourne : forces de rappel totale qui s'applique sur chaque noeud de la créature, shape (n_nodes, 2)"""
-    k = 10 # Constante de raideur du ressort
+    k = 0 # Constante de raideur du ressort
     pos = positions[:, t]  # On prend les positions au temps t
     # Étendre les positions pour faire des soustractions vectorisées
     pos_i = pos[:, np.newaxis, :]     # shape (n, 1, 2)
@@ -104,7 +104,7 @@ def pfd(liste_force, t, mass=1):
     forces: (n_nodes, n_interval_time, n_forces, 2)
     retourne : accelerations de chaque noeud (n_nodes, n_interval_time, 2)
     """
-    total_force = np.sum(liste_force[:,t], axis=1)  # shape: (n_nodes, n_interval_time, 2)
+    total_force = np.sum(liste_force[:,:,t,:], axis=0)  # shape: (n_nodes, n_interval_time, 2)
     accelerations = total_force / mass
     return accelerations
 
@@ -131,29 +131,15 @@ def energie_cinetique(vitesse, t, masse = 1):
 
 print("Energie cinétique", energie_cinetique(vit, 1))  # Affiche l'énergie cinétique pour les vitesses données
 
-"""
-Test créature - la Méduse :
-"""
-pos = np.array([[100,100], [150,150], [100,200]])
-matrice_adjacence = np.array([[0,1,0], [1,0,1], [0,1,0]])
-
-#Calcul les longueurs à vide dans une matrice d'adjacence
-def neighbors(pos, matrice_adjacence):
-    l0 = np.zeros((len(pos), len(pos)))
-    for i,point in enumerate(matrice_adjacence):
-        for j,voisin in enumerate(point):
-            if voisin != 0:
-                l0[i,j] = np.linalg.norm(pos[i]-pos[j])
-    return l0
-
-meduse = [pos, matrice_adjacence]
 
 
 
 
-#test de forces aléatoires
- 
-force_initial = [[[[15,12]],[[7,4]],[[0,0]]] , [[[-25,-22]],[[-17,-14]],[[0,2]]]]
+
+
+
+
+
 
 
 
@@ -169,8 +155,8 @@ def calcul_position(creature,f_musc_periode, dt = 1/60, T = 10.):
     #Nombre d'itérations
     n_interval_time = int(T/dt)  
     # Forces qui boucle sur la période cyclique de force donnée
-    f_musc = np.array([[f_musc_periode[i][j%len(f_musc_periode[i])] for j in range(n_interval_time)] for i in range(len(f_musc_periode))])    
-
+    f_musc = np.array([[f_musc_periode[i][j%len(f_musc_periode[i])] for j in range(n_interval_time)] for i in range(len(f_musc_periode))])  *10  
+    #f_musc = np.zeros((n_nodes, n_interval_time,2))
     #accéleration en chaque noeud
     a = np.zeros((n_nodes, n_interval_time, 2))     #shape = (N_noeuds, N_t, 2)
 
@@ -196,7 +182,6 @@ def calcul_position(creature,f_musc_periode, dt = 1/60, T = 10.):
 
         #force de rappel en chacun des sommets
         f_rap[:,t] = force_rappel(xy, l0, t) 
-        print(np.shape(f_rap), np.shape(f_eau), np.shape(f_musc))
         #Array rassemblant les différentes forces
         liste_forces = np.array([f_rap, f_eau,f_musc])
         
@@ -263,12 +248,47 @@ def check_line_cross(creature:np.ndarray)->np.ndarray: # Fonction naïve pour em
     return pt_intersec
 
 
+
+
+
+
+
+
+"""
+Test créature - la Méduse :
+"""
+pos = np.array([[100,100], [150,150], [200,100]])
+matrice_adjacence = np.array([[0,1,0], [1,0,1], [0,1,0]])
+
+#Calcul les longueurs à vide dans une matrice d'adjacence
+def neighbors(pos, matrice_adjacence):
+    l0 = np.zeros((len(pos), len(pos)))
+    for i,point in enumerate(matrice_adjacence):
+        for j,voisin in enumerate(point):
+            if voisin != 0:
+                l0[i,j] = np.linalg.norm(pos[i]-pos[j])
+    return l0
+
+meduse = [pos, matrice_adjacence]
+
+
+
+
+#test de forces aléatoires
+ 
+force_initial = [[[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]] , 
+                 [[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]], 
+                  [[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]]] 
+                 #[[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]]]
+
+
+
 forces = []
 pos  = calcul_position(meduse, force_initial)[1]
 t = 0
 
 
-"""while running and t < 10/(1/60):
+while running and t < 10/(1/60):
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -276,17 +296,15 @@ t = 0
     screen.fill((0, 128, 255))
     
     # Ligne entre les deux points
-    pygame.draw.line(screen, (125, 50, 0), pos[0, t], pos[1, t], 10)
-    n_nodes = 2
+    #pygame.draw.line(screen, (125, 50, 0), pos[0, t], pos[1, t], 10)
+    n_nodes = 3
     # Cercles pour chaque point
     for i in range(n_nodes):
-        print()
-        print(pos[0])
-        pygame.draw.circle(screen, (255, 0, 0), pos[i, t], 20)
+        pygame.draw.circle(screen, (255, 0, 0), pos[i, t], 10)
 
     pygame.display.flip()
     clock.tick(60)
-    t += 1"""
+    t += 1
 
 # Quit Pygame
 pygame.quit()
