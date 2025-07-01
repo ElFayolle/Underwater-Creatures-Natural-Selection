@@ -56,13 +56,35 @@ def frottement_eau(v_moy,vitesse:np.ndarray,position:np.ndarray,t,alpha:float = 
     return F_visq
 
 
-def force_rappel(i,j,creature):  #Erronée
-    k = 100e10
-    mi,mj = creature[i][0], creature[j][0]
-    l = ((mi[0] - mj[0])**2 + (mi[1] - mj[1])**2)**0.5
-    l0 = creature[i][1 ][j]
-    u_ij = np.array((mi - mj)) / l
-    return -k * (l - l0) * u_ij
+def force_rappel(positions,l0):  #Renvoie la force de rappel totale qui s'applique sur chaque noeud d'une créature
+    k = 10 # Constante de raideur du ressort
+    n = len(positions) # Nombre de noeuds
+    # Étendre les positions pour faire des soustractions vectorisées
+    pos_i = positions[:, np.newaxis, :]     # shape (n, 1, 2)
+    pos_j = positions[np.newaxis, :, :]     # shape (1, n, 2)
+    # Vecteurs de déplacement entre nœuds : r_ij = pos_j - pos_i
+    vec = pos_j - pos_i             # shape (n, n, 2)
+    # Distances actuelles
+    l = np.linalg.norm(vec, axis=2)   # shape (n, n)
+    # Éviter division par 0 (ajouter petite valeur ε)
+    eps = 1e-12
+    unit_vec = vec / (L[..., np.newaxis] + eps)  # shape (n, n, 2)
+    # Calcul de la force de rappel selon Hooke : F = -k*(L - L0) * u
+    # On met une condition masque pour les liens existants
+    mask = (l0 > 0)
+    # Delta L
+    delta_L = l - l0                 # shape (n, n)
+
+    # Forces totales
+    F = -k * delta_L[..., np.newaxis] * unit_vec  # shape (n, n, 2)
+
+    # Ne garder que les forces là où il y a un ressort (càd mettre à 0 les forces pour les nœuds sans lien entre eux)
+    F[~mask] = 0.0
+
+    # Résultat : F[i,j] est la force exercée sur le nœud j par le ressort entre i et j
+    forces = F.sum(axis=0)
+    
+    return forces
 
 
 def pfd(liste_force, t, mass=1):
