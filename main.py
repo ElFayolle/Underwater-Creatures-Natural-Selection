@@ -78,7 +78,7 @@ def force_rappel(positions,l0,t):  #Renvoie la force de rappel totale qui s'appl
     """positions: (n_nodes, t, 2) # Positions des noeuds
     l0 : (n_nodes, n_nodes) # Longueurs de repos des liens entre les noeuds
     retourne : forces de rappel totale qui s'applique sur chaque noeud de la créature, shape (n_nodes, 2)"""
-    k = 10e-2 # Constante de raideur du ressort
+    k = 5*10e-1 # Constante de raideur du ressort
     pos = positions[:, t]  # On prend les positions au temps t
     # Étendre les positions pour faire des soustractions vectorisées
     pos_i = pos[:, np.newaxis, :]     # shape (n, 1, 2)
@@ -167,7 +167,7 @@ def calcul_position(creature,f_musc_periode, dt = 1/60, T = 10.):
     #Nombre d'itérations
     n_interval_time = int(T/dt)  
     # Forces qui boucle sur la période cyclique de force donnée
-    f_musc = np.array([[f_musc_periode[i][j%len(f_musc_periode[i])] for j in range(n_interval_time)] for i in range(len(f_musc_periode))])  *100 
+    f_musc = np.array([[f_musc_periode[i][j%len(f_musc_periode[i])] for j in range(n_interval_time)] for i in range(len(f_musc_periode))])  *100
     #f_musc = np.zeros((n_nodes, n_interval_time,2))
     #accéleration en chaque noeud
     a = np.zeros((n_nodes, n_interval_time, 2))     #shape = (N_noeuds, N_t, 2)
@@ -203,7 +203,6 @@ def calcul_position(creature,f_musc_periode, dt = 1/60, T = 10.):
         #Calcul de la vitesse et position au temps t
         v[:, t] = v[:, t-1] + dt * a[:, t-1]
         xy[:, t] = xy[:, t-1] + dt * v[:, t-1]
-        print(f"a : {a[1,t]}, v : {v[1,t]}, pos : {xy[1,t]}")
     return (v, xy)
 
 
@@ -272,14 +271,17 @@ def see_creatures(event:pygame.event,position_tot):
     pygame.draw.line()
     return None
 
-def draw_creature(pos,t):
+def draw_creature(pos,t, offset):
     """Dessinne une créature à un temps t"""
     for index in range(1,len(pos)):
-        pygame.draw.line(screen,(125, 50, 0),pos[index-1,t],pos[index,t],10)
-        pygame.draw.circle(screen,(255,0,0),pos[index-1,t],10)
-    pygame.draw.circle(screen,(255,255,0),pos[2,t],10)
+        pygame.draw.line(screen,(125, 50, 0),pos[index-1,t]+offset,pos[index,t]+offset,10)
+        pygame.draw.circle(screen,(255,0,0),pos[index-1,t]+offset,10)
+    pygame.draw.circle(screen,(255,255,0),pos[2,t]+offset,10)
     return None
     
+def get_offset(barycentre, screen_width, screen_height):
+    screen_center = np.array([screen_width // 2, screen_height // 2])
+    return screen_center - barycentre
 
 
 
@@ -338,9 +340,9 @@ while running and t < 10/(1/60):
             
 
     screen.fill((0, 128, 255))
-    
-    draw_creature(pos,t)
-    draw_creature(pos2,t)
+    offset = get_offset(centre_de_masse(pos, t), width, height)
+    draw_creature(pos,t, offset)
+    #draw_creature(pos2,t)
     
     pygame.display.flip()
     clock.tick(60)
