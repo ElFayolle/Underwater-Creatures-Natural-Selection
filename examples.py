@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import random
 import math
+import json
 
 
 LENGTH = 70
@@ -181,6 +182,16 @@ with open("creatures_text.txt", "w", encoding = 'utf-8') as fichier_texte :
       fichier_texte.write(f"Positions des noeuds : \n{creature[0]}\n\n\n")
       fichier_texte.write(f"Matrice d'adjacence avec distances : \n{creature[1]}\n\n\n")
       fichier_texte.write(f"Forces par noeud en fonction du temps : \n{creature[2]}\n\n\n")
+
+with open("creatures.json", "w", encoding="utf-8") as f:
+    json_creatures = []
+    for key, creature in creatures_tot.items():
+        # Convertir en listes natives
+        pos = creature[0].tolist() if hasattr(creature[0], "tolist") else creature[0]
+        mat = creature[1].tolist() if hasattr(creature[1], "tolist") else creature[1]
+        forc = creature[2].tolist() if hasattr(creature[2], "tolist") else creature[2]
+        json_creatures.append([key, pos, mat, forc])
+    json.dump(json_creatures, f, indent=2)
 
 with open("creatures_text.txt") as fichier_texte:
   print(fichier_texte.read())

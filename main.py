@@ -1,12 +1,10 @@
 import pygame
 import numpy as np
-import random as rd
-
-rd.seed(42)
 
 pygame.init()
 # Set up the display
 WIDTH, HEIGHT = 800, 600
+CURRENT_CREATURE = 0
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Natural Selection Simulation")
 # Set up the clock for frame rate control
@@ -244,6 +242,16 @@ def calcul_position(creature, dt = 1/60, T = 100.):
 def score(energie, distance, taille):
     score = 2/3*distance/max(distance) + 1/3* energie/taille * max(taille/energie)
 
+def iter_score(position, vitesse): # Calcule les grandeurs liées au score d'UNE créature
+    masse = len(position)   # masse et taille sont identiques ici
+    energie = np.sum(np.square(vitesse))*masse*0.5
+    distance = np.linalg.norm(centre_de_masse(position,0) - centre_de_masse(position,-1))
+    return energie,distance,masse #return energie distance taille
+
+def selection(score_total:np.ndarray,force_total,):
+
+    return None
+
 
 def check_line_cross(position:np.ndarray,t)->np.ndarray: # Fonction naïve pour empêcher les croisements de segments
     l = len(position)
@@ -291,17 +299,14 @@ def check_line_cross(position:np.ndarray,t)->np.ndarray: # Fonction naïve pour 
         
     return pt_intersec
 
-def see_creatures(event:pygame.event,position_tot):
-    i = 0
+def see_creatures(event:pygame.event):
+    global CURRENT_CREATURE
     if event.key == pygame.K_LEFT:
-            if i!=0:
-                i-=1
+            if CURRENT_CREATURE!=0:
+                CURRENT_CREATURE-=1
     if event.key == pygame.K_RIGHT:
-            if i<position_tot-1:
-                i+=1
-    screen.fill((0, 128, 255))
-    
-    pygame.draw.line()
+            if CURRENT_CREATURE<len(position_tot)-1:
+                CURRENT_CREATURE+=1
     return None
 
 def draw_creature(pos,t, offset):
@@ -317,7 +322,17 @@ def get_offset(barycentre, screen_width, screen_height):
     screen_center = np.array([screen_width // 2, screen_height // 2])
     return screen_center - barycentre
 
+def instantiate_bubbles(N_bubbles,rmax=10):
+    bubbles = np.random.rand(N_bubbles,3)
+    bubbles[:,0] *= WIDTH
+    bubbles[:,1] *= HEIGHT
+    bubbles[:,2] *= rmax
+    return bubbles
 
+def draw_bubbles(bubbles,offset,barycentre,v_moy,t):
+    for index,bubble in enumerate(bubbles):
+        pygame.draw.circle(screen,(109,169,197),bubble[:-1]+offset,bubble[2])
+    return None
 
 
 
@@ -342,6 +357,15 @@ def neighbors(pos, matrice_adjacence):
 def bubulle(centre_masse,v_moy):
     
     return None
+
+
+
+meduse = [pos, matrice_adjacence]
+med2 = [pos2, matrice_adjacence]
+
+
+
+
 #test de forces aléatoires
 
 force_initial = [[[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]] , 
@@ -369,6 +393,9 @@ pos  = calcul_position(meduse)[1]
 t = 0
 
 
+#Test bulles
+bubbles = instantiate_bubbles(30)
+position_tot=np.array([pos,pos2])
 
 while running and t < 100/(1/60):
     for event in pygame.event.get():
@@ -379,12 +406,14 @@ while running and t < 100/(1/60):
             
 
     screen.fill((0, 128, 255))
-    offset = get_offset(centre_de_masse(pos, t), WIDTH,HEIGHT)
+    barycentre = centre_de_masse(pos, t)
+    offset = get_offset(centre_de_masse(position_tot[CURRENT_CREATURE], t), WIDTH,HEIGHT)
+    draw_bubbles(bubbles,offset,barycentre,0,t)
     draw_creature(pos,t, offset)
+    draw_creature(pos2,t,offset)
     font=pygame.font.Font(None, 24)
     text = font.render("distance : " + str(distance(pos,t)),1,(255,255,255))
     screen.blit(text, (10, 10))
-    #draw_creature(pos2,t)
     
     pygame.display.flip()
     clock.tick(60)
