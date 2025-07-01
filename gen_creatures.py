@@ -42,7 +42,12 @@ creatures_tot = {
 for key, value in creatures_tot.items():
     n = len(value[0]) # Nombre de noeuds
     ticks = rd.randint(MIN_TICKS, MAX_TICKS) # Nombre de ticks pour un cycle
-    force_musc = np.zeros(n,ticks,2)
-    n_movements = rd.randint(MIN_N_MOVEMENTS, MAX_N_MOVEMENTS) # Nombre de mouvements dans un cycle
+    force_musc = np.zeros((n,ticks,2))
+    n_movements = np.random.randint(MIN_N_MOVEMENTS, MAX_N_MOVEMENTS, size = n) # Nombre de mouvements dans un cycle
+    print(n_movements)
+    print("fin item")
+    #for i in range(n):
+
+    #n_movements = rd.randint(MIN_N_MOVEMENTS, MAX_N_MOVEMENTS) # Nombre de mouvements dans un cycle
     
 
