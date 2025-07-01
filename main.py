@@ -1,8 +1,5 @@
 import pygame
 import numpy as np
-import random as rd
-
-rd.seed(42)
 
 pygame.init()
 # Set up the display
@@ -283,7 +280,19 @@ def get_offset(barycentre, screen_width, screen_height):
     screen_center = np.array([screen_width // 2, screen_height // 2])
     return screen_center - barycentre
 
+def instantiate_bubbles(N_bubbles,rmax=10):
+    bubbles = np.random.rand(N_bubbles,3)
+    bubbles[:,0] *= width
+    bubbles[:,1] *= height
+    bubbles[:,2] *= rmax
+    print(bubbles.shape)
+    return bubbles
 
+def draw_bubbles(bubbles,offset,barycentre,v_moy,t):
+    for index,bubble in enumerate(bubbles):
+        pygame.draw.circle(screen,(109,169,197),bubble[:-1]+offset,bubble[2])
+        print("drawn !", bubble)
+    return None
 
 
 
@@ -305,9 +314,7 @@ def neighbors(pos, matrice_adjacence):
                 l0[i,j] = np.linalg.norm(pos[i]-pos[j])
     return l0
 
-def bubulle(centre_masse,v_moy):
-    
-    return None
+
 
 
 meduse = [pos, matrice_adjacence]
@@ -330,6 +337,8 @@ pos  = calcul_position(meduse, force_initial)[1]
 pos2 = calcul_position(med2,force_initial)[1]
 t = 0
 
+#Test bulles
+bubbles = instantiate_bubbles(30)
 
 while running and t < 10/(1/60):
     for event in pygame.event.get():
@@ -340,7 +349,9 @@ while running and t < 10/(1/60):
             
 
     screen.fill((0, 128, 255))
+    barycentre = centre_de_masse(pos, t)
     offset = get_offset(centre_de_masse(pos, t), width, height)
+    draw_bubbles(bubbles,offset,barycentre,0,t)
     draw_creature(pos,t, offset)
     #draw_creature(pos2,t)
     
