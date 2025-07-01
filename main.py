@@ -27,6 +27,11 @@ accelerations = []
         if voisin != 0 :
             forces[i][index][1] += forces_creatures_points[i][k] / nb_vois"""
 
+def centre_de_masse(creature:np.ndarray,t):
+    """Calcul du centre de masse de chaque créature à un instant t"""
+    C = np.mean(creature[:, t], axis=0) 
+    return C
+
 def nombre_de_voisins(k, i, creatures):
     """Calcule le nombre de voisins du point k de la ième créature"""
     nb = 0
