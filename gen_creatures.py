@@ -48,8 +48,10 @@ for key, value in creatures_tot.items():
     mask = np.zeros((n, ticks), dtype=bool) # On prépare un masque
     for i in range(n):
         n_movements = np.random.randint(MIN_N_MOVEMENTS, MAX_N_MOVEMENTS) # Nombre de mouvements dans un cycle pour le noeud i
-        mask[i, np.random.choice(ticks, size=n_movements, replace=False)] = True
-    force_musc[mask] = MIN_FORCE_MUSC + (MAX_FORCE_MUSC - MIN_FORCE_MUSC) * np.random.random((mask.sum(),2))
-
+        mask[i, np.random.choice(ticks, size=n_movements, replace=False)] = True # On choisit aléatoirement les ticks où le noeud i va bouger
+    force_musc[mask] = MIN_FORCE_MUSC + (MAX_FORCE_MUSC - MIN_FORCE_MUSC) * np.random.random((mask.sum(),2)) # Valeurs de force musculaire
+    # aléatoires pour les noeuds qui bougent
+    print(force_musc)
+    print("fin item")
     
 
