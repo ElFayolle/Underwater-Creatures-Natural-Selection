@@ -210,6 +210,16 @@ def calcul_position(creature,f_musc_periode, dt = 1/60, T = 10.):
 def score(energie, distance, taille):
     score = 2/3*distance/max(distance) + 1/3* energie/taille * max(taille/energie)
 
+def iter_score(position, vitesse): # Calcule les grandeurs liées au score d'UNE créature
+    masse = len(position)   # masse et taille sont identiques ici
+    energie = np.sum(np.square(vitesse))*masse*0.5
+    distance = np.linalg.norm(centre_de_masse(position,0) - centre_de_masse(position,-1))
+    return energie,distance,masse #return energie distance taille
+
+def selection(score_total:np.ndarray,force_total,):
+
+    return None
+
 
 def check_line_cross(position:np.ndarray,t)->np.ndarray: # Fonction naïve pour empêcher les croisements de segments
     l = len(position)
@@ -284,16 +294,14 @@ def get_offset(barycentre, screen_width, screen_height):
 
 def instantiate_bubbles(N_bubbles,rmax=10):
     bubbles = np.random.rand(N_bubbles,3)
-    bubbles[:,0] *= width
-    bubbles[:,1] *= height
+    bubbles[:,0] *= WIDTH
+    bubbles[:,1] *= HEIGHT
     bubbles[:,2] *= rmax
-    print(bubbles.shape)
     return bubbles
 
 def draw_bubbles(bubbles,offset,barycentre,v_moy,t):
     for index,bubble in enumerate(bubbles):
         pygame.draw.circle(screen,(109,169,197),bubble[:-1]+offset,bubble[2])
-        print("drawn !", bubble)
     return None
 
 
