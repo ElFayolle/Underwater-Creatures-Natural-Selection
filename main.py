@@ -334,7 +334,7 @@ while running and t < 10/(1/60):
             
 
     screen.fill((0, 128, 255))
-    offset = get_offset(centre_de_masse(pos, t), width, height)
+    offset = get_offset(centre_de_masse(pos, t), WIDTH, HEIGHT)
     draw_creature(pos,t)
     draw_creature(pos2,t)
     
