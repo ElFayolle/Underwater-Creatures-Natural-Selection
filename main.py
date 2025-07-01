@@ -78,7 +78,7 @@ def force_rappel(positions,l0,t):  #Renvoie la force de rappel totale qui s'appl
     """positions: (n_nodes, t, 2) # Positions des noeuds
     l0 : (n_nodes, n_nodes) # Longueurs de repos des liens entre les noeuds
     retourne : forces de rappel totale qui s'applique sur chaque noeud de la créature, shape (n_nodes, 2)"""
-    k = 10 # Constante de raideur du ressort
+    k = 10e-2 # Constante de raideur du ressort
     pos = positions[:, t]  # On prend les positions au temps t
     # Étendre les positions pour faire des soustractions vectorisées
     pos_i = pos[:, np.newaxis, :]     # shape (n, 1, 2)
@@ -106,6 +106,9 @@ def force_rappel(positions,l0,t):  #Renvoie la force de rappel totale qui s'appl
     forces = F.sum(axis=0)
     
     return forces
+
+
+
 
 
 def pfd(liste_force, t, mass=1):
@@ -164,7 +167,7 @@ def calcul_position(creature,f_musc_periode, dt = 1/60, T = 10.):
     #Nombre d'itérations
     n_interval_time = int(T/dt)  
     # Forces qui boucle sur la période cyclique de force donnée
-    f_musc = np.array([[f_musc_periode[i][j%len(f_musc_periode[i])] for j in range(n_interval_time)] for i in range(len(f_musc_periode))])  *10  
+    f_musc = np.array([[f_musc_periode[i][j%len(f_musc_periode[i])] for j in range(n_interval_time)] for i in range(len(f_musc_periode))])  *100 
     #f_musc = np.zeros((n_nodes, n_interval_time,2))
     #accéleration en chaque noeud
     a = np.zeros((n_nodes, n_interval_time, 2))     #shape = (N_noeuds, N_t, 2)
@@ -189,7 +192,7 @@ def calcul_position(creature,f_musc_periode, dt = 1/60, T = 10.):
         #calcul de la force de frottement liée à l'eau
         #f_eau[:,t] = 0 #frottement_eau(vitesse_moyenne(v,t),v, xy, t)# fonction de xy[:,t-1]
         #force de rappel en chacun des sommets
-        f_rap[:,t] = force_rappel(xy, l0, t) 
+        f_rap[:,t] = force_rappel(xy, l0, t-1) 
         #Array rassemblant les différentes forces
         liste_forces = np.array([f_rap, f_eau,f_musc])
         
@@ -203,7 +206,6 @@ def calcul_position(creature,f_musc_periode, dt = 1/60, T = 10.):
         v[:, t] = v[:, t-1] + dt * a[:, t-1]
         xy[:, t] = xy[:, t-1] + dt * v[:, t-1]
         print(f"a : {a[1,t]}, v : {v[1,t]}, pos : {xy[1,t]}")
-        time.sleep(1)
     return (v, xy)
 
 
@@ -283,7 +285,7 @@ def draw_creature(position,t):
 """
 Test créature - la Méduse :
 """
-pos = np.array([[100,100], [150,150], [200,100]])
+pos = np.array([[100,100], [150,150], [200,100]])+np.array([[0,400], [0,400], [0,400]])
 matrice_adjacence = np.array([[0,1,0], [1,0,1], [0,1,0]])
 
 #Calcul les longueurs à vide dans une matrice d'adjacence
