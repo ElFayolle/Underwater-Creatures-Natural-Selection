@@ -261,20 +261,27 @@ def check_line_cross(position:np.ndarray,t)->np.ndarray: # Fonction naïve pour 
         
     return pt_intersec
 
-def see_creatures(event:pygame.event):
+def see_creatures(event:pygame.event,position_tot):
+    i = 0
     if event.key == pygame.K_LEFT:
-            location -= 1
+            if i!=0:
+                i-=1
     if event.key == pygame.K_RIGHT:
-            location += 1
+            if i<position_tot-1:
+                i+=1
     screen.fill((0, 128, 255))
+    
     pygame.draw.line()
     return None
 
-def draw_creature(position,t):
-    for index, node in enumerate(position[::-1,t],start=1):
-        pygame.draw.line(screen,(125, 50, 0),position[index-1,t],node,10)
-        pygame.draw.circle(screen,(255,0,0),position[index-1,t],10)
-    pygame.draw.circle(screen,(255,0,0),position[index-1,t],10)
+def draw_creature(pos,t):
+    """Dessinne une créature à un temps t"""
+    for index in range(1,len(pos)):
+        pygame.draw.line(screen,(125, 50, 0),pos[index-1,t],pos[index,t],10)
+        pygame.draw.circle(screen,(255,0,0),pos[index-1,t],10)
+    pygame.draw.circle(screen,(255,255,0),pos[2,t],10)
+    return None
+    
 
 
 
@@ -285,7 +292,8 @@ def draw_creature(position,t):
 """
 Test créature - la Méduse :
 """
-pos = np.array([[100,100], [150,150], [200,100]])+np.array([[0,400], [0,400], [0,400]])
+pos = np.array([[100,100], [150,150], [200,100]])
+pos2 = np.array([[150,300], [500,300], [600,400]])
 matrice_adjacence = np.array([[0,1,0], [1,0,1], [0,1,0]])
 
 #Calcul les longueurs à vide dans une matrice d'adjacence
@@ -298,6 +306,7 @@ def neighbors(pos, matrice_adjacence):
     return l0
 
 meduse = [pos, matrice_adjacence]
+med2 = [pos2, matrice_adjacence]
 
 
 
@@ -313,6 +322,7 @@ force_initial = [[[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[0,0],[0
 
 forces = []
 pos  = calcul_position(meduse, force_initial)[1]
+pos2 = calcul_position(med2,force_initial)[1]
 t = 0
 
 
@@ -326,16 +336,9 @@ while running and t < 10/(1/60):
 
     screen.fill((0, 128, 255))
     
-    # Ligne entre les deux points
-    pygame.draw.line(screen, (125, 50, 0), pos[0, t], pos[1, t], 10)
-    n_nodes = 2
     draw_creature(pos,t)
-
-
-    # Cercles pour chaque point
-    for i in range(n_nodes):
-        pygame.draw.circle(screen, (255, 0, 0), pos[i, t], 10)
-
+    draw_creature(pos2,t)
+    
     pygame.display.flip()
     clock.tick(60)
     t += 1
