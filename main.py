@@ -1,10 +1,13 @@
 import pygame
 import numpy as np
+import random as rd
+
+rd.seed(42)
 
 pygame.init()
 # Set up the display
-width, height = 800, 600
-screen = pygame.display.set_mode((width, height))
+WIDTH, HEIGHT = 800, 600
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Natural Selection Simulation")
 # Set up the clock for frame rate control
 clock = pygame.time.Clock()
@@ -75,7 +78,7 @@ def force_rappel(positions,l0,t):  #Renvoie la force de rappel totale qui s'appl
     """positions: (n_nodes, t, 2) # Positions des noeuds
     l0 : (n_nodes, n_nodes) # Longueurs de repos des liens entre les noeuds
     retourne : forces de rappel totale qui s'applique sur chaque noeud de la créature, shape (n_nodes, 2)"""
-    k = 5*10e-1 # Constante de raideur du ressort
+    k = 5e-1 # Constante de raideur du ressort
     pos = positions[:, t]  # On prend les positions au temps t
     # Étendre les positions pour faire des soustractions vectorisées
     pos_i = pos[:, np.newaxis, :]     # shape (n, 1, 2)
@@ -304,6 +307,11 @@ def neighbors(pos, matrice_adjacence):
                 l0[i,j] = np.linalg.norm(pos[i]-pos[j])
     return l0
 
+def bubulle(centre_masse,v_moy):
+    
+    return None
+
+
 meduse = [pos, matrice_adjacence]
 med2 = [pos2, matrice_adjacence]
 
@@ -335,7 +343,7 @@ while running and t < 10/(1/60):
             
 
     screen.fill((0, 128, 255))
-    offset = get_offset(centre_de_masse(pos, t), width, height)
+    offset = get_offset(centre_de_masse(pos, t), WIDTH,HEIGHT)
     draw_creature(pos,t, offset)
     font=pygame.font.Font(None, 24)
     text = font.render("distance : " + str(distance(pos,t)),1,(255,255,255))
