@@ -18,17 +18,72 @@ def point_exists(new_pos, positions, tol=1e-6):
 #    colonne = matrice_croisements[:, -1]
 #    return np.any(colonne[:-1] != 0)
 
+def croisement(positions, connections, new_pos, base_index):
+    """Vérifie si le dernier segment ajouté (entre new_pos et le point d'indice base_index) croise un segment existant
+    Renvoie True si le segment est invalide (False si pas de croisement)"""
+    point1 = (positions[base_index][0], positions[base_index][1])
+    point2 = (new_pos[0], new_pos[1])
+
+    new_segment = (point1, point2)
+
+    #Etablir la liste des segments existants sous la forme (point1, point2)
+    liste_segments = []
+    for i in range(len(connections)):
+        for j in range(i):
+            if connections[i][j] != 0 :
+                segment = ((positions[i][0], positions[i][1]), (positions[j][0], positions[j][1]))
+                liste_segments.append(segment)
+
+    #Vérification de croisement pour chaque segment
+    for seg in liste_segments :
+        if croisement_segments(new_segment, seg):
+            return True
+
+    return False
+
+def croisement_segments(segment1, segment2):
+    """Vérifie si deux segments se croisent.
+    Renvoie True s'il y a croisement."""
+    p1, p2 = segment1
+    p3, p4 = segment2
+    x1, y1 = p1
+    x2, y2 = p2
+    x3, y3 = p3
+    x4, y4 = p4
+
+    #Test d'égalité de point - si les segments partent du même point ils ne se croisent pas
+    if (x1 == x3 and y1 == y3) or (x1 == x4 and y1 == y4) :
+        return False
+
+    # Calcul des coefficients de la droite AB
+    a1, b1 = y2 - y1, x1 - x2
+    c1 = -(a1 * x1 + b1 * y1)
+
+    # Calcul des coefficients de la droite CD
+    a2, b2 = y4 - y3, x3 - x4
+    c2 = -(a2 * x3 + b2 * y3)
+
+    # Test des produits croisés
+    d1 = a1 * x3 + b1 * y3 + c1
+    d2 = a1 * x4 + b1 * y4 + c1
+    d3 = a2 * x1 + b2 * y1 + c2
+    d4 = a2 * x2 + b2 * y2 + c2
+
+    if d1 * d2 < 0 and d3 * d4 < 0:
+        return True  # Croisement détecté
+
+    return False  # Sinon, pas de croisement
 
 def create_random_creature():
-    num_points = random.randint(8, 9)
+    num_points = random.randint(4, 6)
     positions = [[0, 0]]
-    connections = [[0]]  # matrice de distances
+    connections = [[0]]  # matrice d'adjacence (de distances)
     i = 0
     
     while i < num_points - 1 :
         base_index = random.randint(0, len(positions) - 1)
 
-        angle = random.randint(0,360)
+        angle = random.randint(1,360)
         angle_rad = math.radians(angle)
         dy = LENGTH * math.sin(angle_rad)
         dx = LENGTH * math.cos(angle_rad)
@@ -36,9 +91,9 @@ def create_random_creature():
 
         # Nouvelle position candidate
         new_pos = [positions[base_index][0] + dx, positions[base_index][1] + dy]
-
-        # Éviter les doublons
-        if point_exists(new_pos, positions):
+        
+        #Eviter les croisements
+        if croisement(positions, connections, new_pos, base_index):
             continue
             
 
