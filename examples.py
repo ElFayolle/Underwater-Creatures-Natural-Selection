@@ -5,6 +5,7 @@ import math
 
 
 LENGTH = 70
+NOMBRE_DE_CREATURES = 25
 
 def point_exists(new_pos, positions, tol=1e-6):
     """Fonction qui vérifie si le point new_pos recouvre un point déjà existant (vrai si recouvrement)"""
@@ -101,8 +102,8 @@ def create_random_creature():
         for row in connections:
             row.append(0)
         new_row = [0] * len(positions)
-        new_row[base_index] = LENGTH
-        connections[base_index][len(positions) - 1] = LENGTH
+        new_row[base_index] = randomized_length
+        connections[base_index][len(positions) - 1] = randomized_length
         connections.append(new_row)
         i += 1
 
@@ -127,30 +128,51 @@ def distances_match(positions, distance_matrix):
 def is_valid_creature(positions, distance_matrix):
     return is_symmetric(distance_matrix) and distances_match(positions, distance_matrix)
 
-creatures = {}
-for i in range(25):
+creatures_tot = {}
+for i in range(NOMBRE_DE_CREATURES):
     pos, dist = create_random_creature()
-    creatures[i] = (pos, dist)
+    creatures_tot[i] = [pos, dist]
 
-fig, axes = plt.subplots(5, 5, figsize=(15, 6))
-axes = axes.flatten()
+# fig, axes = plt.subplots(5, 5, figsize=(15, 6))
+# axes = axes.flatten()
 
-for i, ax in enumerate(axes):
-    pos, dist = creatures[i]
-    for j in range(len(pos)):
-        x, y = pos[j]
-        ax.plot(x, y, 'ko')
-        ax.text(x + 1, y + 1, str(j), fontsize=8)
-        for k in range(j+1, len(pos)):
-            if dist[j][k] != 0:
-                x2, y2 = pos[k]
-                ax.plot([x, x2], [y, y2], 'b-')
+# for i, ax in enumerate(axes):
+#     pos, dist = creatures[i]
+#     for j in range(len(pos)):
+#         x, y = pos[j]
+#         ax.plot(x, y, 'ko')
+#         ax.text(x + 1, y + 1, str(j), fontsize=8)
+#         for k in range(j+1, len(pos)):
+#             if dist[j][k] != 0:
+#                 x2, y2 = pos[k]
+#                 ax.plot([x, x2], [y, y2], 'b-')
 
-    ax.set_title(f"Créature {i}")
-    ax.axis('equal')
-    ax.set_xticks([])
-    ax.set_yticks([])
-    ax.grid(True)
+#     ax.set_title(f"Créature {i}")
+#     ax.axis('equal')
+#     ax.set_xticks([])
+#     ax.set_yticks([])
+#     ax.grid(True)
 
-plt.tight_layout()
-plt.show()
+# plt.tight_layout()
+# plt.show()
+
+MIN_TICKS = 50
+MAX_TICKS = 60
+MIN_N_MOVEMENTS = 3
+MAX_N_MOVEMENTS = 6
+MIN_FORCE_MUSC = 0.1
+MAX_FORCE_MUSC = 0.5
+
+# Nombre aléatoire de ticks par cycle, de mouvements par noeud dans un cycle, et de valeurs de force musculaire par noeud dans un cycle
+for key, value in creatures_tot.items():
+    n = len(value[0]) # Nombre de noeuds
+    ticks = random.randint(MIN_TICKS, MAX_TICKS) # Nombre de ticks pour un cycle
+    force_musc = np.zeros((n,ticks,2))
+    mask = np.zeros((n, ticks), dtype=bool) # On prépare un masque
+    for i in range(n):
+        n_movements = np.random.randint(MIN_N_MOVEMENTS, MAX_N_MOVEMENTS) # Nombre de mouvements dans un cycle pour le noeud i
+        mask[i, np.random.choice(ticks, size=n_movements, replace=False)] = True
+    force_musc[mask] = MIN_FORCE_MUSC + (MAX_FORCE_MUSC - MIN_FORCE_MUSC) * np.random.random((mask.sum(),2))
+    creatures_tot[key].append(force_musc)
+
+print(creatures_tot[0])
