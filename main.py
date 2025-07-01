@@ -30,8 +30,8 @@ accelerations = []
 def centres_de_masse(positions_tot:np.ndarray,t):
 
     C_tot = np.zeros((len(positions_tot,2)))
-    for i in range(len(positions_tot)): # Boucle for berk mais je ne trouve rien de pratique
-        C_tot[i] = centre_de_masse(positions_tot[i]) 
+    for index,pos in enumerate(positions_tot): # Boucle for berk mais je ne trouve rien de pratique
+        C_tot[index] = centre_de_masse(pos) 
     return C_tot
 
 def centre_de_masse(position:np.ndarray,t):
@@ -47,29 +47,26 @@ def nombre_de_voisins(k, i, creatures):
             nb += 1
     return nb
 
-def frottement_eau(v_moy,vitesse:np.ndarray,neighbours:np.ndarray,position:np.ndarray,t,alpha:float = 1):  #UNE créature, UNE vitesse associée. Shapes = [N_noeuds,N_t,2]
+def frottement_eau(vitesse:np.ndarray,neighbours:np.ndarray,position:np.ndarray,t,alpha:float = 1):  #UNE créature, UNE vitesse associée. Shapes = [N_noeuds,N_t,2]
     """Retourne les forces appliquées à chaque sommet i d'une créature dû à l'eau"""
     l=len(position)
     F_visq = np.zeros((l,2))
-    v_reel = vitesse - np.tile(v_moy,(l,1))
+    v_moy = vitesse_moyenne(vitesse,t)
     for i in range(l-1):
         for index, voisin in enumerate(neighbours[i]):
             if voisin!=0:
                 BA = -position[i+1,t-1]+position[i,t-1] # Vecteur BA avec A le premier sommet 
-                cos_theta = np.dot(BA,np.array([1,0]))/np.norm(BA)
-                sin_theta = np.dot(BA,np.array([0,1]))/np.norm(BA)
+                cos_theta = np.dot(BA,np.array([1,0]))/np.linalg.norm(BA)
+                sin_theta = np.dot(BA,np.array([0,1]))/np.linalg.norm(BA)
                 u_theta = +cos_theta*np.array([0,1]) - sin_theta*np.array([1,0])
-                v_orad_bout = (np.dot(v_reel[i,t-1],u_theta))*u_theta   # Vitesse ortho_radiale du bout du segment
-                F_norm =  alpha*(v_orad_bout/2)^2                        # Force du point à r/2
-                F_visq[i][0] = F_norm*(-sin_theta)                 
-                F_visq[i][1] = F_norm*cos_theta
+                v_orad_bout = (np.dot(vitesse[i,t-1]-v_moy,u_theta))*u_theta   # Vitesse ortho_radiale du bout du segment
+                F_visq[i] =  - alpha*(np.linalg.norm(v_orad_bout)/4)*v_orad_bout                        # Force du point à r/2
 
     # Le dernier sommet correspond à inverser le calcul: on regarde l'angle de l'autre bout du bras donc on "déphase" de pi, cos= -cos, sin = -sin
+
     u_theta = -u_theta
-    v_orad_bout = (np.dot(v_reel[l,t-1],u_theta))*u_theta   
-    F_norm =  alpha*(v_orad_bout/2)^2 
-    F_visq[l][0] = F_norm*(sin_theta)
-    F_visq[l][1] = F_norm*(-cos_theta)
+    v_orad_bout = (np.dot(vitesse[l-1,t-1]-v_moy,u_theta))*u_theta   
+    F_visq[l-1] =  - alpha*(np.linalg.norm(v_orad_bout)/4)*v_orad_bout
     
     return F_visq
 
@@ -78,7 +75,7 @@ def force_rappel(positions,l0,t):  #Renvoie la force de rappel totale qui s'appl
     """positions: (n_nodes, t, 2) # Positions des noeuds
     l0 : (n_nodes, n_nodes) # Longueurs de repos des liens entre les noeuds
     retourne : forces de rappel totale qui s'applique sur chaque noeud de la créature, shape (n_nodes, 2)"""
-    k = 10e-2 # Constante de raideur du ressort
+    k = 5*10e-1 # Constante de raideur du ressort
     pos = positions[:, t]  # On prend les positions au temps t
     # Étendre les positions pour faire des soustractions vectorisées
     pos_i = pos[:, np.newaxis, :]     # shape (n, 1, 2)
@@ -167,7 +164,7 @@ def calcul_position(creature,f_musc_periode, dt = 1/60, T = 10.):
     #Nombre d'itérations
     n_interval_time = int(T/dt)  
     # Forces qui boucle sur la période cyclique de force donnée
-    f_musc = np.array([[f_musc_periode[i][j%len(f_musc_periode[i])] for j in range(n_interval_time)] for i in range(len(f_musc_periode))])  *100 
+    f_musc = np.array([[f_musc_periode[i][j%len(f_musc_periode[i])] for j in range(n_interval_time)] for i in range(len(f_musc_periode))])  *100
     #f_musc = np.zeros((n_nodes, n_interval_time,2))
     #accéleration en chaque noeud
     a = np.zeros((n_nodes, n_interval_time, 2))     #shape = (N_noeuds, N_t, 2)
@@ -186,11 +183,12 @@ def calcul_position(creature,f_musc_periode, dt = 1/60, T = 10.):
 
     #Condition initiale de position
     xy[:,0] = pos_init
-    import time
+
     #Calcul itératif des forces/vitesses et positions
     for t in range(1,int(n_interval_time)):
         #calcul de la force de frottement liée à l'eau
-        #f_eau[:,t] = 0 #frottement_eau(vitesse_moyenne(v,t),v, xy, t)# fonction de xy[:,t-1]
+        f_eau[:,t] = frottement_eau(v,matrice_adjacence,xy,t)
+
         #force de rappel en chacun des sommets
         f_rap[:,t] = force_rappel(xy, l0, t-1) 
         #Array rassemblant les différentes forces
@@ -198,14 +196,10 @@ def calcul_position(creature,f_musc_periode, dt = 1/60, T = 10.):
         
         #Somme des forces et calcul du PFD au temps t
         a[:,t] = pfd(liste_forces, t)
-        print(f"Force rappel : {f_rap[1,t]}, Force musc : {f_musc[1,t]}")
-        print(f"pfd : {pfd(liste_forces,t)[1]}")
-
         
         #Calcul de la vitesse et position au temps t
         v[:, t] = v[:, t-1] + dt * a[:, t-1]
         xy[:, t] = xy[:, t-1] + dt * v[:, t-1]
-        print(f"a : {a[1,t]}, v : {v[1,t]}, pos : {xy[1,t]}")
     return (v, xy)
 
 
@@ -274,14 +268,17 @@ def see_creatures(event:pygame.event,position_tot):
     pygame.draw.line()
     return None
 
-def draw_creature(pos,t):
+def draw_creature(pos,t, offset):
     """Dessinne une créature à un temps t"""
     for index in range(1,len(pos)):
-        pygame.draw.line(screen,(125, 50, 0),pos[index-1,t],pos[index,t],10)
-        pygame.draw.circle(screen,(255,0,0),pos[index-1,t],10)
-    pygame.draw.circle(screen,(255,255,0),pos[2,t],10)
+        pygame.draw.line(screen,(125, 50, 0),pos[index-1,t]+offset,pos[index,t]+offset,10)
+        pygame.draw.circle(screen,(255,0,0),pos[index-1,t]+offset,10)
+    pygame.draw.circle(screen,(255,255,0),pos[2,t]+offset,10)
     return None
     
+def get_offset(barycentre, screen_width, screen_height):
+    screen_center = np.array([screen_width // 2, screen_height // 2])
+    return screen_center - barycentre
 
 
 
@@ -335,9 +332,9 @@ while running and t < 10/(1/60):
             
 
     screen.fill((0, 128, 255))
-    
-    draw_creature(pos,t)
-    draw_creature(pos2,t)
+    offset = get_offset(centre_de_masse(pos, t), width, height)
+    draw_creature(pos,t, offset)
+    #draw_creature(pos2,t)
     
     pygame.display.flip()
     clock.tick(60)
