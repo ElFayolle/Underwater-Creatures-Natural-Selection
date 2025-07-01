@@ -5,7 +5,7 @@ import math
 
 
 LENGTH = 70
-NOMBRE_DE_CREATURES = 25
+NOMBRE_DE_CREATURES = 5
 
 def point_exists(new_pos, positions, tol=1e-6):
     """Fonction qui vérifie si le point new_pos recouvre un point déjà existant (vrai si recouvrement)"""
@@ -175,4 +175,12 @@ for key, value in creatures_tot.items():
     force_musc[mask] = MIN_FORCE_MUSC + (MAX_FORCE_MUSC - MIN_FORCE_MUSC) * np.random.random((mask.sum(),2))
     creatures_tot[key].append(force_musc)
 
-print(creatures_tot[0])
+with open("creatures_text.txt", "w", encoding = 'utf-8') as fichier_texte :
+  for key, creature in creatures_tot.items() :
+      fichier_texte.write(f"Créature n° {key} :\n\n")
+      fichier_texte.write(f"Positions des noeuds : \n{creature[0]}\n\n\n")
+      fichier_texte.write(f"Matrice d'adjacence avec distances : \n{creature[1]}\n\n\n")
+      fichier_texte.write(f"Forces par noeud en fonction du temps : \n{creature[2]}\n\n\n")
+
+with open("creatures_text.txt") as fichier_texte:
+  print(fichier_texte.read())
