@@ -27,6 +27,18 @@ accelerations = []
         if voisin != 0 :
             forces[i][index][1] += forces_creatures_points[i][k] / nb_vois"""
 
+def centres_de_masse(creatures:np.ndarray,t):
+
+    C_tot = np.zeros((len(creatures,2)))
+    for i in range(len(creatures)): # Boucle for berk mais je ne trouve rien de pratique
+        C_tot[i] = centre_de_masse(creatures[i]) 
+    return C_tot
+
+def centre_de_masse(creature:np.ndarray,t):
+    """Calcul du centre de masse de chaque créature à un instant t"""
+    C = np.mean(creature[:, t], axis=0) 
+    return C
+
 def nombre_de_voisins(k, i, creatures):
     """Calcule le nombre de voisins du point k de la ième créature"""
     nb = 0
@@ -35,40 +47,72 @@ def nombre_de_voisins(k, i, creatures):
             nb += 1
     return nb
 
-def frottement_eau(v_moy,vitesse:np.ndarray,position:np.ndarray,t,alpha:float = 1):  #UNE créature
+def frottement_eau(v_moy,vitesse:np.ndarray,position:np.ndarray,t,alpha:float = 1):  #UNE créature, UNE vitesse associée. Shapes = [N_noeuds,N_t,2]
     """Retourne les forces appliquées à chaque sommet i d'une créature dû à l'eau"""
     l=len(position)
-    F_visq = np.zeros(l)
+    F_visq = np.zeros((l,2))
     v_reel = vitesse - v_moy*np.ones(l)
-    AB = [0,0]
-    for i in range(l):
-        if i!=l-1:
-            AB = position[i+1,t-1]-position[i,t-1]
-        cos_theta = np.dot(AB,[1,0])
+
+    for i in range(l-1):
+        BA = -position[i+1,t-1]+position[i,t-1] # Vecteur BA avec A le premier sommet 
+        cos_theta = np.dot(BA,[1,0])/np.norm(BA)
         sin_theta = np.sqrt(np.max(0,1-cos_theta^2))
-        u_theta = -cos_theta*[1,0] + sin_theta*[0,1]
+        u_theta = +cos_theta*[0,1] - sin_theta*[1,0]
         v_orad_bout = (np.dot(v_reel[i,t-1],u_theta))*u_theta   # Vitesse ortho_radiale du bout du segment
         F_norm =  alpha*(v_orad_bout/2)^2                        # Force du point à r/2
-        F_visq[i][0] = F_norm*cos_theta                 
-        F_visq[i][1] = F_norm*sin_theta
+        F_visq[i][0] = F_norm*(-sin_theta)                 
+        F_visq[i][1] = F_norm*cos_theta
     
+    # Le dernier sommet correspond à inverser le calcul: on regarde l'angle de l'autre bout du bras donc on "déphase" de pi, cos= -cos, sin = -sin
+    u_theta = -u_theta
+    v_orad_bout = (np.dot(v_reel[l,t-1],u_theta))*u_theta   
+    F_norm =  alpha*(v_orad_bout/2)^2 
+    F_visq[l][0] = F_norm*(sin_theta)
+    F_visq[l][1] = F_norm*(-cos_theta)
+    
+
 
     return F_visq
 
 
-def force_rappel(i,j,creature):  #Erronée
-    k = 100e10
-    mi,mj = creature[i][0], creature[j][0]
-    l = ((mi[0] - mj[0])**2 + (mi[1] - mj[1])**2)**0.5
-    l0 = creature[i][1 ][j]
-    u_ij = np.array((mi - mj)) / l
-    return -k * (l - l0) * u_ij
+def force_rappel(positions,l0,t):  #Renvoie la force de rappel totale qui s'applique sur chaque noeud d'une créature
+    """positions: (n_nodes, t, 2) # Positions des noeuds
+    l0 : (n_nodes, n_nodes) # Longueurs de repos des liens entre les noeuds
+    retourne : forces de rappel totale qui s'applique sur chaque noeud de la créature, shape (n_nodes, 2)"""
+    k = 10 # Constante de raideur du ressort
+    pos = positions[:, t]  # On prend les positions au temps t
+    # Étendre les positions pour faire des soustractions vectorisées
+    pos_i = pos[:, np.newaxis, :]     # shape (n, 1, 2)
+    pos_j = pos[np.newaxis, :, :]     # shape (1, n, 2)
+    # Vecteurs de déplacement entre nœuds : r_ij = pos_j - pos_i
+    vec = pos_j - pos_i             # shape (n, n, 2)
+    # Distances actuelles
+    l = np.linalg.norm(vec, axis=2)   # shape (n, n)
+    # Éviter division par 0 (ajouter petite valeur ε)
+    eps = 1e-12
+    unit_vec = vec / (l[..., np.newaxis] + eps)  # shape (n, n, 2)
+    # Calcul de la force de rappel selon Hooke : F = -k*(L - L0) * u
+    # On met une condition masque pour les liens existants
+    mask = (l0 > 0)
+    # Delta L
+    delta_L = l - l0                 # shape (n, n)
+
+    # Forces totales
+    F = -k * delta_L[..., np.newaxis] * unit_vec  # shape (n, n, 2)
+
+    # Ne garder que les forces là où il y a un ressort (càd mettre à 0 les forces pour les nœuds sans lien entre eux)
+    F[~mask] = 0.0
+
+    # Résultat : F[i,j] est la force exercée sur le nœud j par le ressort entre i et j
+    forces = F.sum(axis=0)
+    
+    return forces
 
 
 def pfd(liste_force, t, mass=1):
     """
     forces: (n_nodes, n_interval_time, n_forces, 2)
-    retourne : accelerations of shape (n_nodes, n_interval_time, 2)
+    retourne : accelerations de chaque noeud (n_nodes, n_interval_time, 2)
     """
     total_force = np.sum(liste_force[:,t], axis=1)  # shape: (n_nodes, n_interval_time, 2)
     accelerations = total_force / mass
@@ -80,8 +124,7 @@ def vitesse_moyenne(vitesse, t):
     t: float
     retourne : moyenne des vitesses sur le temps t
     """
-    vitesse_moy = np.mean(vitesse[:, int(t)], axis=0)  # liste de 2 éléments : v_moy_x, v_moy_y
-    vitesse_moy = np.linalg.norm(vitesse_moy)  # norme de la vitesse
+    vitesse_moy = np.sum(vitesse[:, t], axis=0)  # liste de 2 éléments : v_moy_x, v_moy_y
     return vitesse_moy
 
 vit = np.array([[[4,8],[2,3]],[[1,2],[3,4]],[[0,0],[1,1]]])  # Exemple de vitesses pour 3 noeuds et 2 temps
@@ -98,41 +141,79 @@ def energie_cinetique(vitesse, t, masse = 1):
 
 print("Energie cinétique", energie_cinetique(vit, 1))  # Affiche l'énergie cinétique pour les vitesses données
 
+"""
+Test créature - la Méduse :
+"""
+pos = np.array([[100,100], [150,150], [100,200]])
+matrice_adjacence = np.array([[0,1,0], [1,0,1], [0,1,0]])
+
+#Calcul les longueurs à vide dans une matrice d'adjacence
+def neighbors(pos, matrice_adjacence):
+    l0 = np.zeros((len(pos), len(pos)))
+    for i,point in enumerate(matrice_adjacence):
+        for j,voisin in enumerate(point):
+            if voisin != 0:
+                l0[i,j] = np.linalg.norm(pos[i]-pos[j])
+    return l0
+
+meduse = [pos, matrice_adjacence]
+
+
+
 
 #test de forces aléatoires
  
 force_initial = [[[[15,12],[0,0]],[[7,4],[1,3]],[[0,0],[0,0]]] , [[[-25,-22],[-10,-10]],[[-17,-14],[-1,-3]],[[0,0],[0,0]]]]
 
-#calcul_position(np.Array(), float #pas de temps, float #temps de simul, int #nombre de noeuds)
-def calcul_position(f_musc_periode, dt = 1/60, T = 10., n_nodes=2):
 
-    #liste_forces = [ f_eau, f_musc, f_rap ]
 
-    pos = [[100,100], [100,300]] #test pos initial pour 2 noeuds
-    neigh = [[0,200], [200,0]]   
+#calcul_position(np.Array()#cycle de forces de la créature, float #pas de temps, float #temps de simul, int #nombre de noeuds) -> vitesse et position 
+def calcul_position(creature,f_musc_periode, dt = 1/60, T = 10.):
+
+    n_nodes = len(pos)
+    pos_init, matrice_adjacence = creature[0], creature[1]
+    l0 = neighbors(pos_init, matrice_adjacence)
+    #pos = [[100,100], [100,300]] #test pos initial pour 2 noeuds
+    #neigh = [[0,200], [200,0]]   
 
     #Nombre d'itérations
     n_interval_time = int(T/dt)  
     # Forces qui boucle sur la période cyclique de force donnée
-    f_musc = np.array([[f_musc_periode[i][j%len(f_musc_periode[i])] for j in range(n_interval_time)] for i in range(len(f_musc_periode))])    #CI vitesse 
-    v = np.zeros((n_nodes, int(n_interval_time), 2))  #shape = (N_noeuds, N_t, 2)
-    xy = np.zeros((n_nodes, int(n_interval_time), 2)) #shape = (N_noeuds, N_t, 2)
-    a = np.zeros((n_nodes, int(n_interval_time), 2))
-    f_eau = np.zeros((n_nodes, int(n_interval_time), 2))
-    f_rap = np.zeros((n_nodes, int(n_interval_time), 2))
-    print(np.shape(f_eau))
-    print(np.shape(f_rap))
-    print(np.shape(f_musc))
-    xy[:,0] = pos
+    f_musc = np.array([[f_musc_periode[i][j%len(f_musc_periode[i])] for j in range(n_interval_time)] for i in range(len(f_musc_periode))])    
 
+    #accéleration en chaque noeud
+    a = np.zeros((n_nodes, n_interval_time, 2))     #shape = (N_noeuds, N_t, 2)
 
+    #vitesse en chaque noeud 
+    v = np.zeros((n_nodes, n_interval_time, 2))     #shape = (N_noeuds, N_t, 2)
+
+    #position en chaque noeud
+    xy = np.zeros((n_nodes, n_interval_time, 2))    #shape = (N_noeuds, N_t, 2)
+
+    #force de l'eau sur chaque sommet
+    f_eau = np.zeros((n_nodes, n_interval_time, 2)) #shape = (N_noeuds, N_t, 2)
+
+    #force de rappel en chaque sommet
+    f_rap = np.zeros((n_nodes, n_interval_time, 2)) #shape = (N_noeuds, N_t, 2)
+
+    #Condition initiale de position
+    xy[:,0] = pos_init
+
+    #Calcul itératif des forces/vitesses et positions
     for t in range(1,int(n_interval_time)):
-        f_eau[t] = frottement_eau(v[:,t-1], xy[:,t-1], t)# fonction de xy[:,t-1]
-        f_rap[t] = force_rappel(1,2,3) # fonction de v[:t-1] et xy[:,t-1] ATTENDRE BASILE
+        #calcul de la force de frottement liée à l'eau
+        #f_eau[t] = 0 #frottement_eau(vitesse_moyenne(v,t),v, xy, t)# fonction de xy[:,t-1]
+
+        #force de rappel en chacun des sommets
+        f_rap[t] = force_rappel(xy, l0) # fonction de v[:t-1] et xy[:,t-1]
+
+        #Array rassemblant les différentes forces
         liste_forces = np.array([f_rap, f_eau,f_musc])
         
+        #Somme des forces et calcul du PFD au temps t
         a[:,t] = pfd(liste_forces, t)
         
+        #Calcul de la vitesse et position au temps t
         v[:, t] = v[:, t-1] + dt * a[:, t-1]
         xy[:, t] = xy[:, t-1] + dt * v[:, t-1]
 
@@ -140,7 +221,7 @@ def calcul_position(f_musc_periode, dt = 1/60, T = 10., n_nodes=2):
 
 
 
-
+#Fonction qui calcule le "score" de chaque créature - amené à changer.
 def score(energie, distance, taille):
     score = 2/3*distance/max(distance) + 1/3* energie/taille * max(taille/energie)
 
@@ -148,48 +229,74 @@ def score(energie, distance, taille):
 def check_line_cross(creature:np.ndarray)->np.ndarray: # Fonction naïve pour empêcher les croisements de segments
     l = len(creature)
 
-    #Tableau booléens d'intersection du segment i "[AB]" au segment j "[CD]""
+    # Tableau booléens d'intersection du segment i "[AB]" au segment j "[CD]""
     pt_intersec = np.zeros((l-1,l-1)) 
 
     # Calcul des droites passant par chaque segment
     for i in range(l-1):
-        for j in range(l-1):  
+        for j in range(l-1): 
+            is_straight_1,is_straight_2 = False, False 
             delta_x_1 = (creature[i+1][0]-creature[i][0]) 
             delta_x_2 = (creature[j+1][0]-creature[j][0])
             if delta_x_1 <=1e-6:
-                coeff_droite_1 = 0
+                is_straight_1 = True
             else:
                 coeff_droite_1 = (creature[i+1][1]-creature[i][1])/delta_x_1    # Delta y sur delta x pour les coefficients affines 
             if delta_x_2 <=1e-6:
-                coeff_droite_2 = 0
+                is_straight_2 = True
             else:
-                coeff_droite_2 = (creature[j+1][1]-creature[j][1])/delta_x_2
-            ordonnée_origine_1 = creature[i][1] - coeff_droite_1*creature[i]    # On caclule l'ordonnée à l'origine de chaque droite
-            ordonnée_origine_2 = creature[j][1] - coeff_droite_1*creature[j]
+                coeff_droite_2 = (creature[j+1][1]-creature[j][1])/delta_x_2   
+            if not is_straight_1:    
+                ordonnée_origine_1 = creature[i][1] - coeff_droite_1*creature[i]    # On caclule l'ordonnée à l'origine de chaque droite
+            if not is_straight_2:
+                ordonnée_origine_2 = creature[j][1] - coeff_droite_1*creature[j]
 
         
-        # Booléens:
-        above_CD_A = (coeff_droite_2*creature[i][0] + ordonnée_origine_2 <= creature[i][1] )
-        above_CD_B = (coeff_droite_2*creature[i+1][0] + ordonnée_origine_2 <= creature[i+1][1])
-        above_AB_C = (coeff_droite_1*creature[j][0] + ordonnée_origine_1 <= creature[j][1])
-        above_AB_D = (coeff_droite_1*creature[j+1][0] + ordonnée_origine_1 <= creature[j+1][1])
+            # Booléens:
+            if is_straight_2:
+                above_CD_A = (creature[j][0] <= creature[i][0])    # Above = à droite si la ligne est verticale pure
+                above_CD_B = (creature[j][0] <= creature[i+1][0])
+            else: 
+                above_CD_A = (coeff_droite_2*creature[i][0] + ordonnée_origine_2 <= creature[i][1] )
+                above_CD_B = (coeff_droite_2*creature[i+1][0] + ordonnée_origine_2 <= creature[i+1][1])
+            if is_straight_1:
+                above_AB_C = (creature[i][0] <= creature[j][0])
+                above_AB_D = (creature[i][0] <= creature[j+1][0])
+            else:
+                above_AB_C = (coeff_droite_1*creature[j][0] + ordonnée_origine_1 <= creature[j][1])
+                above_AB_D = (coeff_droite_1*creature[j+1][0] + ordonnée_origine_1 <= creature[j+1][1])
 
-        # Si les segments se croisent chaque point est de part et d'autre des deux droites définies:
-        if (above_AB_C != above_AB_D ) and (above_CD_A != above_CD_B):  # Si chaque couple de point est de part et d'autre du segment réciproque, il y a intersection !
-            pt_intersec[i][j]=1
+            # Si les segments se croisent chaque point est de part et d'autre des deux droites définies:
+            if (above_AB_C != above_AB_D ) and (above_CD_A != above_CD_B):  # Si chaque couple de point est de part et d'autre du segment réciproque, il y a intersection !
+                pt_intersec[i][j]=1
         
     return pt_intersec
 
+def see_creatures(event:pygame.event):
+    if event.key == pygame.K_LEFT:
+            location -= 1
+    if event.key == pygame.K_RIGHT:
+            location += 1
+    screen.fill((0, 128, 255))
+    pygame.draw.line()
+    return None
+
+def draw_creature(creature):
+    pos = creature[:,t,0]
+    return None
 
 forces = []
-pos  = calcul_position(force_initial)[1]
+pos  = calcul_position(meduse, force_initial)[1]
 t = 0
 
 
-"""while running and t < 10/(1/60):
+while running and t < 10/(1/60):
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+        if event.type == pygame.KEYDOWN:
+            see_creatures(event)
+            
 
     screen.fill((0, 128, 255))
     
@@ -204,7 +311,7 @@ t = 0
 
     pygame.display.flip()
     clock.tick(60)
-    t += 1"""
+    t += 1
 
 # Quit Pygame
 pygame.quit()
