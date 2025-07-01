@@ -27,6 +27,13 @@ accelerations = []
         if voisin != 0 :
             forces[i][index][1] += forces_creatures_points[i][k] / nb_vois"""
 
+def centres_de_masse(creatures:np.ndarray,t):
+
+    C_tot = np.zeros((len(creatures,2)))
+    for i in range(len(creatures)): # Boucle for berk mais je ne trouve rien de pratique
+        C_tot[i] = centre_de_masse(creatures[i]) 
+    return C_tot
+
 def centre_de_masse(creature:np.ndarray,t):
     """Calcul du centre de masse de chaque créature à un instant t"""
     C = np.mean(creature[:, t], axis=0) 
@@ -43,22 +50,25 @@ def nombre_de_voisins(k, i, creatures):
 def frottement_eau(v_moy,vitesse:np.ndarray,position:np.ndarray,t,alpha:float = 1):  #UNE créature, UNE vitesse associée. Shapes = [N_noeuds,N_t,2]
     """Retourne les forces appliquées à chaque sommet i d'une créature dû à l'eau"""
     l=len(position)
-    F_visq = np.zeros(l)
-    v_reel = vitesse[:,t-1] - np.tile(v_moy, (l,1))
-    AB = [0,0]
-    for i in range(l):
-        if i!=l-1:
-            AB = position[i+1,t-1]-position[i,t-1]
-        cos_theta = np.dot(AB,[1,0])
-        sin_theta = np.sqrt(np.max(0,1-cos_theta**2))
-        u_theta = -cos_theta*[1,0] + sin_theta*[0,1]
-        v_orad_bout = (np.dot(v_reel[i,t-1],u_theta))*u_theta    # Vitesse ortho_radiale du bout du segment
-        F_norm =  alpha*(v_orad_bout/2)**2                        # Force du point à r/2
-        F_visq[i][0] = F_norm*cos_theta                 
-        F_visq[i][1] = F_norm*sin_theta
-    
+    F_visq = np.zeros((l,2))
+    v_reel = vitesse - v_moy*np.ones(l)
 
-    return F_visq
+    for i in range(l-1):
+        BA = -position[i+1,t-1]+position[i,t-1] # Vecteur BA avec A le premier sommet 
+        cos_theta = np.dot(BA,[1,0])/np.norm(BA)
+        sin_theta = np.sqrt(np.max(0,1-cos_theta^2))
+        u_theta = +cos_theta*[0,1] - sin_theta*[1,0]
+        v_orad_bout = (np.dot(v_reel[i,t-1],u_theta))*u_theta   # Vitesse ortho_radiale du bout du segment
+        F_norm =  alpha*(v_orad_bout/2)^2                        # Force du point à r/2
+        F_visq[i][0] = F_norm*(-sin_theta)                 
+        F_visq[i][1] = F_norm*cos_theta
+    
+    # Le dernier sommet correspond à inverser le calcul: on regarde l'angle de l'autre bout du bras donc on "déphase" de pi, cos= -cos, sin = -sin
+    u_theta = -u_theta
+    v_orad_bout = (np.dot(v_reel[l,t-1],u_theta))*u_theta   
+    F_norm =  alpha*(v_orad_bout/2)^2 
+    F_visq[l][0] = F_norm*(sin_theta)
+    F_visq[l][1] = F_norm*(-cos_theta)
     
 
 
@@ -192,10 +202,10 @@ def calcul_position(creature,f_musc_periode, dt = 1/60, T = 10.):
     #Calcul itératif des forces/vitesses et positions
     for t in range(1,int(n_interval_time)):
         #calcul de la force de frottement liée à l'eau
-        f_eau[t] = frottement_eau(vitesse_moyenne(v,t),v, xy, t)# fonction de xy[:,t-1]
+        #f_eau[t] = 0 #frottement_eau(vitesse_moyenne(v,t),v, xy, t)# fonction de xy[:,t-1]
 
         #force de rappel en chacun des sommets
-        f_rap[t] = force_rappel(1,2,3) # fonction de v[:t-1] et xy[:,t-1]
+        f_rap[t] = force_rappel(xy, l0) # fonction de v[:t-1] et xy[:,t-1]
 
         #Array rassemblant les différentes forces
         liste_forces = np.array([f_rap, f_eau,f_musc])
@@ -262,16 +272,31 @@ def check_line_cross(creature:np.ndarray)->np.ndarray: # Fonction naïve pour em
         
     return pt_intersec
 
+def see_creatures(event:pygame.event):
+    if event.key == pygame.K_LEFT:
+            location -= 1
+    if event.key == pygame.K_RIGHT:
+            location += 1
+    screen.fill((0, 128, 255))
+    pygame.draw.line()
+    return None
+
+def draw_creature(creature):
+    pos = creature[:,t,0]
+    return None
 
 forces = []
 pos  = calcul_position(meduse, force_initial)[1]
 t = 0
 
 
-"""while running and t < 10/(1/60):
+while running and t < 10/(1/60):
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+        if event.type == pygame.KEYDOWN:
+            see_creatures(event)
+            
 
     screen.fill((0, 128, 255))
     
@@ -286,7 +311,7 @@ t = 0
 
     pygame.display.flip()
     clock.tick(60)
-    t += 1"""
+    t += 1
 
 # Quit Pygame
 pygame.quit()
