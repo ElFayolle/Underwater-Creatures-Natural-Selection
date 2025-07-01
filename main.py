@@ -196,14 +196,14 @@ def calcul_position(creature,f_musc_periode, dt = 1/60, T = 10.):
         
         #Somme des forces et calcul du PFD au temps t
         a[:,t] = pfd(liste_forces, t)
-        print(f"Force rappel : {f_rap[0,t]}, Force musc : {f_musc[0,t]}")
-        print(f"pfd : {pfd(liste_forces,t)[0]}")
+        print(f"Force rappel : {f_rap[1,t]}, Force musc : {f_musc[1,t]}")
+        print(f"pfd : {pfd(liste_forces,t)[1]}")
 
         
         #Calcul de la vitesse et position au temps t
         v[:, t] = v[:, t-1] + dt * a[:, t-1]
         xy[:, t] = xy[:, t-1] + dt * v[:, t-1]
-        print(f"a : {a[0,t]}, v : {v[0,t]}, pos : {xy[0,t]}")
+        print(f"a : {a[1,t]}, v : {v[1,t]}, pos : {xy[1,t]}")
         time.sleep(1)
     return (v, xy)
 
