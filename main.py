@@ -27,6 +27,13 @@ accelerations = []
         if voisin != 0 :
             forces[i][index][1] += forces_creatures_points[i][k] / nb_vois"""
 
+def centres_de_masse(creatures:np.ndarray,t):
+
+    C_tot = np.zeros((len(creatures,2)))
+    for i in range(len(creatures)): # Boucle for berk mais je ne trouve rien de pratique
+        C_tot[i] = centre_de_masse(creatures[i]) 
+    return C_tot
+
 def centre_de_masse(creature:np.ndarray,t):
     """Calcul du centre de masse de chaque créature à un instant t"""
     C = np.mean(creature[:, t], axis=0) 
@@ -43,7 +50,7 @@ def nombre_de_voisins(k, i, creatures):
 def frottement_eau(v_moy,vitesse:np.ndarray,position:np.ndarray,t,alpha:float = 1):  #UNE créature, UNE vitesse associée. Shapes = [N_noeuds,N_t,2]
     """Retourne les forces appliquées à chaque sommet i d'une créature dû à l'eau"""
     l=len(position)
-    F_visq = np.zeros(l)
+    F_visq = np.zeros((l,2))
     v_reel = vitesse - v_moy*np.ones(l)
 
     for i in range(l-1):
@@ -62,10 +69,6 @@ def frottement_eau(v_moy,vitesse:np.ndarray,position:np.ndarray,t,alpha:float = 
     F_norm =  alpha*(v_orad_bout/2)^2 
     F_visq[l][0] = F_norm*(sin_theta)
     F_visq[l][1] = F_norm*(-cos_theta)
-
-    return F_visq
-    
-
 
     return F_visq
 
@@ -223,16 +226,31 @@ def check_line_cross(creature:np.ndarray)->np.ndarray: # Fonction naïve pour em
         
     return pt_intersec
 
+def see_creatures(event:pygame.event):
+    if event.key == pygame.K_LEFT:
+            location -= 1
+    if event.key == pygame.K_RIGHT:
+            location += 1
+    screen.fill((0, 128, 255))
+    pygame.draw.line()
+    return None
+
+def draw_creature(creature):
+    pos = creature[:,t,0]
+    return None
 
 forces = []
 pos  = calcul_position(force_initial)[1]
 t = 0
 
 
-"""while running and t < 10/(1/60):
+while running and t < 10/(1/60):
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+        if event.type == pygame.KEYDOWN:
+            see_creatures(event)
+            
 
     screen.fill((0, 128, 255))
     
@@ -247,7 +265,7 @@ t = 0
 
     pygame.display.flip()
     clock.tick(60)
-    t += 1"""
+    t += 1
 
 # Quit Pygame
 pygame.quit()
