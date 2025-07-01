@@ -43,15 +43,15 @@ def nombre_de_voisins(k, i, creatures):
 def frottement_eau(v_moy,vitesse:np.ndarray,position:np.ndarray,t,alpha:float = 1):  #UNE créature, UNE vitesse associée. Shapes = [N_noeuds,N_t,2]
     """Retourne les forces appliquées à chaque sommet i d'une créature dû à l'eau"""
     l=len(position)
-    F_visq = np.zeros(l)
+    F_visq = np.zeros((l,2))
     v_reel = vitesse[:,t-1] - np.tile(v_moy, (l,1))
     AB = [0,0]
     for i in range(l):
         if i!=l-1:
             AB = position[i+1,t-1]-position[i,t-1]
-        cos_theta = np.dot(AB,[1,0])
-        sin_theta = np.sqrt(np.max(0,1-cos_theta**2))
-        u_theta = -cos_theta*[1,0] + sin_theta*[0,1]
+        cos_theta = np.dot(AB,[1,0])/np.linalg.norm(AB)
+        sin_theta = np.dot(AB,[0,1])/np.linalg.norm(AB)
+        u_theta = -cos_theta*np.array([1,0]) + sin_theta*np.array([0,1])
         v_orad_bout = (np.dot(v_reel[i,t-1],u_theta))*u_theta    # Vitesse ortho_radiale du bout du segment
         F_norm =  alpha*(v_orad_bout/2)**2                        # Force du point à r/2
         F_visq[i][0] = F_norm*cos_theta                 
@@ -80,7 +80,7 @@ def force_rappel(positions,l0):  #Renvoie la force de rappel totale qui s'appliq
     l = np.linalg.norm(vec, axis=2)   # shape (n, n)
     # Éviter division par 0 (ajouter petite valeur ε)
     eps = 1e-12
-    unit_vec = vec / (L[..., np.newaxis] + eps)  # shape (n, n, 2)
+    unit_vec = vec / (l[..., np.newaxis] + eps)  # shape (n, n, 2)
     # Calcul de la force de rappel selon Hooke : F = -k*(L - L0) * u
     # On met une condition masque pour les liens existants
     mask = (l0 > 0)
@@ -192,10 +192,10 @@ def calcul_position(creature,f_musc_periode, dt = 1/60, T = 10.):
     #Calcul itératif des forces/vitesses et positions
     for t in range(1,int(n_interval_time)):
         #calcul de la force de frottement liée à l'eau
-        f_eau[t] = frottement_eau(vitesse_moyenne(v,t),v, xy, t)# fonction de xy[:,t-1]
+        #f_eau[t] = 0 #frottement_eau(vitesse_moyenne(v,t),v, xy, t)# fonction de xy[:,t-1]
 
         #force de rappel en chacun des sommets
-        f_rap[t] = force_rappel(1,2,3) # fonction de v[:t-1] et xy[:,t-1]
+        f_rap[t] = force_rappel(xy, l0) # fonction de v[:t-1] et xy[:,t-1]
 
         #Array rassemblant les différentes forces
         liste_forces = np.array([f_rap, f_eau,f_musc])
