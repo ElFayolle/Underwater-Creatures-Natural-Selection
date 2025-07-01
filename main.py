@@ -85,7 +85,7 @@ def force_rappel(positions,l0):  #Renvoie la force de rappel totale qui s'appliq
     l = np.linalg.norm(vec, axis=2)   # shape (n, n)
     # Éviter division par 0 (ajouter petite valeur ε)
     eps = 1e-12
-    unit_vec = vec / (L[..., np.newaxis] + eps)  # shape (n, n, 2)
+    unit_vec = vec / (l[..., np.newaxis] + eps)  # shape (n, n, 2)
     # Calcul de la force de rappel selon Hooke : F = -k*(L - L0) * u
     # On met une condition masque pour les liens existants
     mask = (l0 > 0)
