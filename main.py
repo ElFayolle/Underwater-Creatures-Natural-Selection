@@ -78,7 +78,7 @@ def force_rappel(positions,l0,t):  #Renvoie la force de rappel totale qui s'appl
     """positions: (n_nodes, t, 2) # Positions des noeuds
     l0 : (n_nodes, n_nodes) # Longueurs de repos des liens entre les noeuds
     retourne : forces de rappel totale qui s'applique sur chaque noeud de la créature, shape (n_nodes, 2)"""
-    k = 0 # Constante de raideur du ressort
+    k = 10e-2 # Constante de raideur du ressort
     pos = positions[:, t]  # On prend les positions au temps t
     # Étendre les positions pour faire des soustractions vectorisées
     pos_i = pos[:, np.newaxis, :]     # shape (n, 1, 2)
@@ -106,6 +106,9 @@ def force_rappel(positions,l0,t):  #Renvoie la force de rappel totale qui s'appl
     forces = F.sum(axis=0)
     
     return forces
+
+
+
 
 
 def pfd(liste_force, t, mass=1):
@@ -164,7 +167,7 @@ def calcul_position(creature,f_musc_periode, dt = 1/60, T = 10.):
     #Nombre d'itérations
     n_interval_time = int(T/dt)  
     # Forces qui boucle sur la période cyclique de force donnée
-    f_musc = np.array([[f_musc_periode[i][j%len(f_musc_periode[i])] for j in range(n_interval_time)] for i in range(len(f_musc_periode))])  *10  
+    f_musc = np.array([[f_musc_periode[i][j%len(f_musc_periode[i])] for j in range(n_interval_time)] for i in range(len(f_musc_periode))])  *100 
     #f_musc = np.zeros((n_nodes, n_interval_time,2))
     #accéleration en chaque noeud
     a = np.zeros((n_nodes, n_interval_time, 2))     #shape = (N_noeuds, N_t, 2)
@@ -183,24 +186,26 @@ def calcul_position(creature,f_musc_periode, dt = 1/60, T = 10.):
 
     #Condition initiale de position
     xy[:,0] = pos_init
-
+    import time
     #Calcul itératif des forces/vitesses et positions
     for t in range(1,int(n_interval_time)):
         #calcul de la force de frottement liée à l'eau
         #f_eau[:,t] = 0 #frottement_eau(vitesse_moyenne(v,t),v, xy, t)# fonction de xy[:,t-1]
-
         #force de rappel en chacun des sommets
-        f_rap[:,t] = force_rappel(xy, l0, t) 
+        f_rap[:,t] = force_rappel(xy, l0, t-1) 
         #Array rassemblant les différentes forces
         liste_forces = np.array([f_rap, f_eau,f_musc])
         
         #Somme des forces et calcul du PFD au temps t
         a[:,t] = pfd(liste_forces, t)
+        print(f"Force rappel : {f_rap[1,t]}, Force musc : {f_musc[1,t]}")
+        print(f"pfd : {pfd(liste_forces,t)[1]}")
+
         
         #Calcul de la vitesse et position au temps t
         v[:, t] = v[:, t-1] + dt * a[:, t-1]
         xy[:, t] = xy[:, t-1] + dt * v[:, t-1]
-
+        print(f"a : {a[1,t]}, v : {v[1,t]}, pos : {xy[1,t]}")
     return (v, xy)
 
 
@@ -256,20 +261,27 @@ def check_line_cross(position:np.ndarray,t)->np.ndarray: # Fonction naïve pour 
         
     return pt_intersec
 
-def see_creatures(event:pygame.event):
+def see_creatures(event:pygame.event,position_tot):
+    i = 0
     if event.key == pygame.K_LEFT:
-            location -= 1
+            if i!=0:
+                i-=1
     if event.key == pygame.K_RIGHT:
-            location += 1
+            if i<position_tot-1:
+                i+=1
     screen.fill((0, 128, 255))
+    
     pygame.draw.line()
     return None
 
-def draw_creature(position,t):
-    for index, node in enumerate(position[::-1,t],start=1):
-        pygame.draw.line(screen,(125, 50, 0),position[index-1,t],node,10)
-        pygame.draw.circle(screen,(255,0,0),position[index-1,t],10)
-    pygame.draw.circle(screen,(255,0,0),position[index-1,t],10)
+def draw_creature(pos,t):
+    """Dessinne une créature à un temps t"""
+    for index in range(1,len(pos)):
+        pygame.draw.line(screen,(125, 50, 0),pos[index-1,t],pos[index,t],10)
+        pygame.draw.circle(screen,(255,0,0),pos[index-1,t],10)
+    pygame.draw.circle(screen,(255,255,0),pos[2,t],10)
+    return None
+    
 
 
 
@@ -281,6 +293,7 @@ def draw_creature(position,t):
 Test créature - la Méduse :
 """
 pos = np.array([[100,100], [150,150], [200,100]])
+pos2 = np.array([[150,300], [500,300], [600,400]])
 matrice_adjacence = np.array([[0,1,0], [1,0,1], [0,1,0]])
 
 #Calcul les longueurs à vide dans une matrice d'adjacence
@@ -293,6 +306,7 @@ def neighbors(pos, matrice_adjacence):
     return l0
 
 meduse = [pos, matrice_adjacence]
+med2 = [pos2, matrice_adjacence]
 
 
 
@@ -308,6 +322,7 @@ force_initial = [[[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[0,0],[0
 
 forces = []
 pos  = calcul_position(meduse, force_initial)[1]
+pos2 = calcul_position(med2,force_initial)[1]
 t = 0
 
 
@@ -321,16 +336,9 @@ while running and t < 10/(1/60):
 
     screen.fill((0, 128, 255))
     
-    # Ligne entre les deux points
-    pygame.draw.line(screen, (125, 50, 0), pos[0, t], pos[1, t], 10)
-    n_nodes = 2
     draw_creature(pos,t)
-
-
-    # Cercles pour chaque point
-    for i in range(n_nodes):
-        pygame.draw.circle(screen, (255, 0, 0), pos[i, t], 10)
-
+    draw_creature(pos2,t)
+    
     pygame.display.flip()
     clock.tick(60)
     t += 1
