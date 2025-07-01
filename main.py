@@ -73,12 +73,39 @@ def frottement_eau(vitesse:np.ndarray,neighbours:np.ndarray,position:np.ndarray,
     
     return F_visq
 
+def force_rappel_amortie(positions, vitesses, l0, t, k=10e-3, c=10):
+    """
+    Ajoute un amortissement proportionnel à la vitesse relative le long de l’axe du ressort
+    """
+    pos = positions[:, t]
+    vel = vitesses[:, t]
+    n = len(pos)
+    pos_i = pos[:, np.newaxis, :]
+    pos_j = pos[np.newaxis, :, :]
+    r_ij = pos_j - pos_i
+    l = np.linalg.norm(r_ij, axis=2)
+    eps = 1e-12
+    u_ij = r_ij / (l[..., np.newaxis] + eps)
+
+    # Vitesse relative projetée sur l’axe du ressort
+    vel_i = vel[:, np.newaxis, :]
+    vel_j = vel[np.newaxis, :, :]
+    vel_rel = vel_j - vel_i
+    damping = c * np.sum(vel_rel * u_ij, axis=2, keepdims=True) * u_ij
+
+    delta_l = (l - l0)[..., np.newaxis]
+    F_spring = -k * delta_l * u_ij
+    F_total = F_spring - damping
+    F_total[l0 == 0] = 0.0
+    return F_total.sum(axis=0)
+
+"""
 
 def force_rappel(positions,l0,t):  #Renvoie la force de rappel totale qui s'applique sur chaque noeud d'une créature
-    """positions: (n_nodes, t, 2) # Positions des noeuds
-    l0 : (n_nodes, n_nodes) # Longueurs de repos des liens entre les noeuds
-    retourne : forces de rappel totale qui s'applique sur chaque noeud de la créature, shape (n_nodes, 2)"""
-    k = 5e-1 # Constante de raideur du ressort
+    #positions: (n_nodes, t, 2) # Positions des noeuds
+    #l0 : (n_nodes, n_nodes) # Longueurs de repos des liens entre les noeuds
+    #retourne : forces de rappel totale qui s'applique sur chaque noeud de la créature, shape (n_nodes, 2)
+    k = 10 # Constante de raideur du ressort
     pos = positions[:, t]  # On prend les positions au temps t
     # Étendre les positions pour faire des soustractions vectorisées
     pos_i = pos[:, np.newaxis, :]     # shape (n, 1, 2)
@@ -107,7 +134,7 @@ def force_rappel(positions,l0,t):  #Renvoie la force de rappel totale qui s'appl
     
     return forces
 
-
+"""
 
 
 
@@ -158,10 +185,10 @@ def distance(position,t):
 
 
 #calcul_position(np.Array()#cycle de forces de la créature, float #pas de temps, float #temps de simul, int #nombre de noeuds) -> vitesse et position 
-def calcul_position(creature,f_musc_periode, dt = 1/60, T = 10.):
+def calcul_position(creature, dt = 1/60, T = 100.):
 
     n_nodes = len(pos)
-    pos_init, matrice_adjacence = creature[0], creature[1]
+    pos_init, matrice_adjacence, f_musc_periode = creature[0], creature[1], creature[2]
     l0 = neighbors(pos_init, matrice_adjacence)
     #pos = [[100,100], [100,300]] #test pos initial pour 2 noeuds
     #neigh = [[0,200], [200,0]]   
@@ -169,7 +196,7 @@ def calcul_position(creature,f_musc_periode, dt = 1/60, T = 10.):
     #Nombre d'itérations
     n_interval_time = int(T/dt)  
     # Forces qui boucle sur la période cyclique de force donnée
-    f_musc = np.array([[f_musc_periode[i][j%len(f_musc_periode[i])] for j in range(n_interval_time)] for i in range(len(f_musc_periode))])  *300
+    f_musc = np.array([[f_musc_periode[i][j%len(f_musc_periode[i])] for j in range(n_interval_time)] for i in range(len(f_musc_periode))])  *30
     #f_musc = np.zeros((n_nodes, n_interval_time,2))
     #accéleration en chaque noeud
     a = np.zeros((n_nodes, n_interval_time, 2))     #shape = (N_noeuds, N_t, 2)
@@ -181,22 +208,26 @@ def calcul_position(creature,f_musc_periode, dt = 1/60, T = 10.):
     xy = np.zeros((n_nodes, n_interval_time, 2))    #shape = (N_noeuds, N_t, 2)
 
     #force de l'eau sur chaque sommet
-    f_eau = np.zeros((n_nodes, n_interval_time, 2)) #shape = (N_noeuds, N_t, 2)
+    f_eau = np.zeros((n_nodes, n_interval_time, 2))  #shape = (N_noeuds, N_t, 2)
+
+    #force de viscosité
+    #f_visc = np.zeros((n_nodes, n_interval_time, 2)) #shape = (N_noeuds, N_t, 2)
 
     #force de rappel en chaque sommet
     f_rap = np.zeros((n_nodes, n_interval_time, 2)) #shape = (N_noeuds, N_t, 2)
 
     #Condition initiale de position
     xy[:,0] = pos_init
-
+    gamma = 1200
     #Calcul itératif des forces/vitesses et positions
     for t in range(1,int(n_interval_time)):
         #calcul de la force de frottement liée à l'eau
         f_eau[:,t] = frottement_eau(v,matrice_adjacence,xy,t)
-
+        #f_visc[:,t] = -gamma*v[:,t]
         #force de rappel en chacun des sommets
-        f_rap[:,t] = force_rappel(xy, l0, t-1) 
+        f_rap[:,t] = force_rappel_amortie(xy, v, l0, t-1) 
         #Array rassemblant les différentes forces
+        print(np.shape(f_rap),np.shape(f_eau),np.shape(f_musc))
         liste_forces = np.array([f_rap, f_eau,f_musc])
         
         #Somme des forces et calcul du PFD au temps t
@@ -278,7 +309,8 @@ def draw_creature(pos,t, offset):
     for index in range(1,len(pos)):
         pygame.draw.line(screen,(125, 50, 0),pos[index-1,t]+offset,pos[index,t]+offset,10)
         pygame.draw.circle(screen,(255,0,0),pos[index-1,t]+offset,10)
-    pygame.draw.circle(screen,(255,255,0),pos[2,t]+offset,10)
+    pygame.draw.circle(screen,(255,255,0),pos[-1,t]+offset,10)
+    pygame.draw.circle(screen,(255,0,0),centre_de_masse(pos,0)+offset,3)
     return None
     
 def get_offset(barycentre, screen_width, screen_height):
@@ -310,31 +342,35 @@ def neighbors(pos, matrice_adjacence):
 def bubulle(centre_masse,v_moy):
     
     return None
-
-
-meduse = [pos, matrice_adjacence]
-med2 = [pos2, matrice_adjacence]
-
-
-
-
 #test de forces aléatoires
- 
+
 force_initial = [[[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]] , 
                  [[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]], 
-                  [[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]]] 
-                 #[[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]]]
+                  [[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]]]
+                 #
 
+# force_initial = ([[[0,-15]], [[0,0]]])
+
+
+meduse = [pos, matrice_adjacence,force_initial]
+med2 = [pos2, matrice_adjacence, force_initial]
+
+"""
+Test simple - le baton
+"""
+#pos = np.array([[100,100], [150,150]])
+#matrice_adjacence = np.array([[0,1], [1,0]])
+baton = [pos, matrice_adjacence, force_initial]
 
 
 forces = []
-pos  = calcul_position(meduse, force_initial)[1]
-pos2 = calcul_position(med2,force_initial)[1]
+pos  = calcul_position(meduse)[1]
+#pos2 = calcul_position(med2,force_initial)[1]
 t = 0
 
 
 
-while running and t < 10/(1/60):
+while running and t < 100/(1/60):
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -353,6 +389,6 @@ while running and t < 10/(1/60):
     pygame.display.flip()
     clock.tick(60)
     t += 1
-
+    
 # Quit Pygame
 pygame.quit()

@@ -55,3 +55,8 @@ for key, value in creatures_tot.items():
     print("fin item")
     
 
+
+    def lissage(force):
+
+        
+
