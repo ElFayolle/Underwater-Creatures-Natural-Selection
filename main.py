@@ -75,15 +75,15 @@ def frottement_eau(v_moy,vitesse:np.ndarray,position:np.ndarray,t,alpha:float = 
     return F_visq
 
 
-def force_rappel(positions,l0):  #Renvoie la force de rappel totale qui s'applique sur chaque noeud d'une créature
-    """positions: (n_nodes, 2) # Positions des noeuds
+def force_rappel(positions,l0,t):  #Renvoie la force de rappel totale qui s'applique sur chaque noeud d'une créature
+    """positions: (n_nodes, t, 2) # Positions des noeuds
     l0 : (n_nodes, n_nodes) # Longueurs de repos des liens entre les noeuds
     retourne : forces de rappel totale qui s'applique sur chaque noeud de la créature, shape (n_nodes, 2)"""
     k = 10 # Constante de raideur du ressort
-    n = len(positions) # Nombre de noeuds
+    pos = positions[:, t]  # On prend les positions au temps t
     # Étendre les positions pour faire des soustractions vectorisées
-    pos_i = positions[:, np.newaxis, :]     # shape (n, 1, 2)
-    pos_j = positions[np.newaxis, :, :]     # shape (1, n, 2)
+    pos_i = pos[:, np.newaxis, :]     # shape (n, 1, 2)
+    pos_j = pos[np.newaxis, :, :]     # shape (1, n, 2)
     # Vecteurs de déplacement entre nœuds : r_ij = pos_j - pos_i
     vec = pos_j - pos_i             # shape (n, n, 2)
     # Distances actuelles
@@ -202,10 +202,10 @@ def calcul_position(creature,f_musc_periode, dt = 1/60, T = 10.):
     #Calcul itératif des forces/vitesses et positions
     for t in range(1,int(n_interval_time)):
         #calcul de la force de frottement liée à l'eau
-        f_eau[t] = frottement_eau(vitesse_moyenne(v,t),v, xy, t)# fonction de xy[:,t-1]
+        #f_eau[t] = 0 #frottement_eau(vitesse_moyenne(v,t),v, xy, t)# fonction de xy[:,t-1]
 
         #force de rappel en chacun des sommets
-        f_rap[t] = force_rappel(1,2,3) # fonction de v[:t-1] et xy[:,t-1]
+        f_rap[t] = force_rappel(xy, l0) # fonction de v[:t-1] et xy[:,t-1]
 
         #Array rassemblant les différentes forces
         liste_forces = np.array([f_rap, f_eau,f_musc])
