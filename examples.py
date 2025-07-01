@@ -4,7 +4,7 @@ import random
 import math
 
 
-LENGTH = 20
+LENGTH = 70
 
 def point_exists(new_pos, positions, tol=1e-6):
     """Fonction qui vérifie si le point new_pos recouvre un point déjà existant (vrai si recouvrement)"""
@@ -12,11 +12,6 @@ def point_exists(new_pos, positions, tol=1e-6):
         if np.linalg.norm(np.array(new_pos) - np.array(p)) < tol:
             return True
     return False
-
-#def croisement(positions):
-#    matrice_croisements = check_line_cross(positions)
-#    colonne = matrice_croisements[:, -1]
-#    return np.any(colonne[:-1] != 0)
 
 def croisement(positions, connections, new_pos, base_index):
     """Vérifie si le dernier segment ajouté (entre new_pos et le point d'indice base_index) croise un segment existant
@@ -55,38 +50,42 @@ def croisement_segments(segment1, segment2):
     if (x1 == x3 and y1 == y3) or (x1 == x4 and y1 == y4) :
         return False
 
-    # Calcul des coefficients de la droite AB
+    #Coefficients de la droite AB
     a1, b1 = y2 - y1, x1 - x2
     c1 = -(a1 * x1 + b1 * y1)
 
-    # Calcul des coefficients de la droite CD
+    #Coefficients de la droite CD
     a2, b2 = y4 - y3, x3 - x4
     c2 = -(a2 * x3 + b2 * y3)
 
-    # Test des produits croisés
+    #Test des produits croisés
     d1 = a1 * x3 + b1 * y3 + c1
     d2 = a1 * x4 + b1 * y4 + c1
     d3 = a2 * x1 + b2 * y1 + c2
     d4 = a2 * x2 + b2 * y2 + c2
 
-    if d1 * d2 < 0 and d3 * d4 < 0:
-        return True  # Croisement détecté
+    if d1 * d2 <= 0 and d3 * d4 <= 0:
+        return True  #Croisement détecté
 
-    return False  # Sinon, pas de croisement
+    return False  #Pas de croisement détecté
+
 
 def create_random_creature():
     num_points = random.randint(4, 6)
     positions = [[0, 0]]
-    connections = [[0]]  # matrice d'adjacence (de distances)
+    connections = [[0]]  #Matrice d'adjacence (de distances)
     i = 0
     
     while i < num_points - 1 :
         base_index = random.randint(0, len(positions) - 1)
 
+        #Distribution gaussienne des longueurs des segments
+        randomized_length = random.gauss(LENGTH, LENGTH/3)
+
         angle = random.randint(1,360)
         angle_rad = math.radians(angle)
-        dy = LENGTH * math.sin(angle_rad)
-        dx = LENGTH * math.cos(angle_rad)
+        dy = randomized_length * math.sin(angle_rad)
+        dx = randomized_length * math.cos(angle_rad)
 
 
         # Nouvelle position candidate
@@ -95,14 +94,8 @@ def create_random_creature():
         #Eviter les croisements
         if croisement(positions, connections, new_pos, base_index):
             continue
-            
 
-        # Ajouter position
         positions.append(new_pos)
-
-#        if croisement(np.array(positions)):
-#            positions.pop()
-#            continue
 
         # Mettre à jour matrice de distances
         for row in connections:
@@ -161,5 +154,3 @@ for i, ax in enumerate(axes):
 
 plt.tight_layout()
 plt.show()
-
-
