@@ -3,8 +3,8 @@ import numpy as np
 
 pygame.init()
 # Set up the display
-width, height = 800, 600
-screen = pygame.display.set_mode((width, height))
+WIDTH, HEIGHT = 800, 600
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Natural Selection Simulation")
 # Set up the clock for frame rate control
 clock = pygame.time.Clock()
@@ -78,7 +78,7 @@ def force_rappel(positions,l0,t):  #Renvoie la force de rappel totale qui s'appl
     """positions: (n_nodes, t, 2) # Positions des noeuds
     l0 : (n_nodes, n_nodes) # Longueurs de repos des liens entre les noeuds
     retourne : forces de rappel totale qui s'applique sur chaque noeud de la créature, shape (n_nodes, 2)"""
-    k = 10e-2 # Constante de raideur du ressort
+    k = 5e-1 # Constante de raideur du ressort
     pos = positions[:, t]  # On prend les positions au temps t
     # Étendre les positions pour faire des soustractions vectorisées
     pos_i = pos[:, np.newaxis, :]     # shape (n, 1, 2)
@@ -198,14 +198,14 @@ def calcul_position(creature,f_musc_periode, dt = 1/60, T = 10.):
         
         #Somme des forces et calcul du PFD au temps t
         a[:,t] = pfd(liste_forces, t)
-        print(f"Force rappel : {f_rap[1,t]}, Force musc : {f_musc[1,t]}")
-        print(f"pfd : {pfd(liste_forces,t)[1]}")
+        #print(f"Force rappel : {f_rap[1,t]}, Force musc : {f_musc[1,t]}")
+        #print(f"pfd : {pfd(liste_forces,t)[1]}")
 
         
         #Calcul de la vitesse et position au temps t
         v[:, t] = v[:, t-1] + dt * a[:, t-1]
         xy[:, t] = xy[:, t-1] + dt * v[:, t-1]
-        print(f"a : {a[1,t]}, v : {v[1,t]}, pos : {xy[1,t]}")
+        #print(f"a : {a[1,t]}, v : {v[1,t]}, pos : {xy[1,t]}")
     return (v, xy)
 
 
@@ -325,6 +325,8 @@ pos  = calcul_position(meduse, force_initial)[1]
 pos2 = calcul_position(med2,force_initial)[1]
 t = 0
 
+#fond = pygame.image.load("fond.jpg").convert()
+#fond = pygame.transform.scale(fond, (WIDTH, HEIGHT))
 
 while running and t < 10/(1/60):
     for event in pygame.event.get():
