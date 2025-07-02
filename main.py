@@ -190,6 +190,48 @@ def force_rappel(positions,l0,t):  #Renvoie la force de rappel totale qui s'appl
     return forces
 
 """
+
+def force_musc_projetee_copilot(position,neighbours,f_musc,t):
+    """
+    Calcule la force musculaire projetée sur les normales aux segments des créatures
+    position: (n_nodes, n_interval_time, 2) # Positions des noeuds
+    neighbours: (n_nodes, n_nodes) # Matrice d'adjacence des voisins
+    f_musc: (n_nodes, n_interval_time, 2) # Forces musculaires
+    t: int # Temps
+    retourne : forces musculaires projetées sur les normales aux segments, shape (n_nodes, 2)
+    """
+    l = len(position)
+    f_musc_proj = np.zeros((l, 2))
+    for i in range(l):
+        voisins = [index for index, e in enumerate(neighbours[i]) if e != 0]
+        for index in voisins:
+            BA = -position[index, t] + position[i, t]  # Vecteur BA avec A le premier sommet
+            norm = np.linalg.norm(BA)
+            if norm > 1e-6:  # Si le segment est minuscule, pas de force
+                cos_theta = np.dot(BA, np.array([1, 0])) / np.linalg.norm(BA)
+                sin_theta = np.dot(BA, np.array([0, 1])) / np.linalg.norm(BA)
+                u_theta = +cos_theta * np.array([0, 1]) - sin_theta * np.array([1, 0])
+                f_musc_proj[i] += f_musc[index, t] * np.dot(f_musc[index, t], u_theta) * u_theta
+    return f_musc_proj
+
+def force_musc_projetee(position,neighbours,f_musc,t):
+    n_nodes = len(position)
+    norm_locales = somme_normales_locales(position,neighbours,t)
+    f_musc_t = f_musc[:, t]  # Forces musculaires au temps t
+    f_musc_proj = np.zeros((n_nodes, 2))
+    for i in range(n_nodes):
+        f_musc_proj[i] = np.dot(f_musc_t[i], norm_locales[i]) * norm_locales[i] / np.linalg.norm(norm_locales[i])
+    return f_musc_proj
+
+
+def somme_normales_locales(position,neighbours,t):
+    dico_normales = normales_locales(position, neighbours, t)
+    normales_totales = np.zeros((len(position), 2))
+    for couple, normale in dico_normales.items():
+        normales_totales[couple[0]] += normale
+        normales_totales[couple[1]] += normale
+    return normales_totales
+
 def normales_locales(position,neighbours,t)->dict:
     d = {}
     for i in range(len(position)):
@@ -205,6 +247,12 @@ def normales_locales(position,neighbours,t)->dict:
                     normale_locale = +cos_theta*np.array([0,1]) - sin_theta*np.array([1,0])
                     d[(index,i)] = normale_locale
     return d
+
+pos = np.array([[[100,100]], [[150,150]], [[200,100]]])
+pos2 = np.array([[150,300], [500,300], [600,400]])
+matrice_adjacence = np.array([[0,1,0], [1,0,1], [0,1,0]])
+print("normales",normales_locales(pos, matrice_adjacence, 0))  # Affiche les normales locales pour les positions et la matrice d'adjacence données
+print("somme_normales", somme_normales_locales(pos, matrice_adjacence, 0))  # Affiche la somme des normales locales
 
 
 def pfd(liste_force, t, mass=1):
@@ -302,6 +350,8 @@ def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
     #force de l'eau sur chaque sommet
     f_eau = np.zeros((n_nodes, n_interval_time, 2))  #shape = (N_noeuds, N_t, 2)
 
+    f_musc_proj = np.zeros((n_nodes, n_interval_time, 2)) #shape = (N_noeuds, N_t, 2)
+
     #force de viscosité
     #f_visc = np.zeros((n_nodes, n_interval_time, 2)) #shape = (N_noeuds, N_t, 2)
 
@@ -318,13 +368,15 @@ def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
         f_eau[:,t] = frottement_eau_globale(v,matrice_adjacence,xy,t-1,1)
 
         #force de rappel en chacun des sommets
-        f_rap[:,t] = force_rappel_amortie(xy, v, l0, t-1) 
+        f_rap[:,t] = force_rappel_amortie(xy, v, l0, t-1)
+
+        f_musc_proj[:,t] = force_musc_projetee(xy, matrice_adjacence, f_musc, t-1) 
 
         #force musculaire efficace
         #f_musc[:,t] = f_musc_cohérente(matrice_adjacence,xy,f_musc,t-1)
         #Array rassemblant les différentes forces
         #print(np.linalg.norm(f_eau[:,t]),np.linalg.norm(f_rap[:,t]))
-        liste_forces = np.array([f_rap, f_eau,f_musc])
+        liste_forces = np.array([f_rap, f_eau,f_musc_proj])
         
         #Somme des forces et calcul du PFD au temps t
         a[:,t] = pfd(liste_forces, t)
