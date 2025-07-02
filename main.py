@@ -1,5 +1,6 @@
 import pygame
 import numpy as np
+import json
 
 pygame.init()
 # Set up the display
@@ -321,16 +322,15 @@ def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
     #Calcul de l'énergie cinétique et de la distance parcourue
     energie = energie_cinetique(v, n_interval_time-1)
     distance_parcourue = distance(xy, n_interval_time-1)
-    #score = score(energie, distance_parcourue, n_nodes)
-    score=0
+    score = calcul_score(energie, distance_parcourue, n_nodes)
     return (v, xy, score)
 
 
 
-#Fonction qui calcule le "score" de chaque créature - amené à changer.
-def score(energie, distance, taille):
-    score = 2/3*distance/max(distance) + 1/3* energie/taille * max(taille/energie)
-    return score
+#Fonction qui calcule le "score" de chaque créature - A CHANGER.
+def calcul_score(energie, distance, taille):
+    score = 2/3 * distance + 1/3 * taille / energie
+    return 2/3*distance
 
 def iter_score(position, vitesse): # Calcule les grandeurs liées au score d'UNE créature
     masse = len(position)   # masse et taille sont identiques ici
@@ -482,10 +482,12 @@ pos  = calcul_position(meduse)[1]
 pos2 = calcul_position(med2)[1]
 t = 0
 
+"""with open("creature_gagnante.json", "r", encoding="utf-8") as f:
+    pos = np.array(json.load(f)[1])"""
 
 #Test bulles
 bubbles = instantiate_bubbles(30)
-position_tot=np.array([pos,pos2])
+position_tot=np.array([pos])
 
 while running and t < DUREE_SIM/(1/60):
     for event in pygame.event.get():
