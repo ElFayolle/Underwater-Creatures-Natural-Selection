@@ -5,7 +5,7 @@ import json
 pygame.init()
 # Set up the display
 WIDTH, HEIGHT = 800, 600
-DUREE_SIM = 10  # Durée de la simulation en secondes
+DUREE_SIM = 100  # Durée de la simulation en secondes
 CURRENT_CREATURE = 0
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Natural Selection Simulation")
@@ -50,15 +50,17 @@ def nombre_de_voisins(k, i, creatures):
             nb += 1
     return nb
 
-def frottement_eau(vitesse:np.ndarray,neighbours:np.ndarray,position:np.ndarray,t,alpha:float = 1):  #UNE créature, UNE vitesse associée. Shapes = [N_noeuds,N_t,2]
-    """Retourne les forces appliquées à chaque sommet i d'une créature dû à l'eau"""
+"""def frottement_eau(vitesse:np.ndarray,neighbours:np.ndarray,position:np.ndarray,t,alpha:float = 1):  #UNE créature, UNE vitesse associée. Shapes = [N_noeuds,N_t,2]
+    #Retourne les forces appliquées à chaque sommet i d'une créature dû à l'eau (NON)
     l=len(position)
     F_visq = np.zeros((l,2))
     v_moy = vitesse_moyenne(vitesse,t)
-    for i in range(l-1):
+    
+
+    for i in range(l):
         for index, voisin in enumerate(neighbours[i]):
             if voisin!=0:
-                BA = -position[i+1,t]+position[i,t] # Vecteur BA avec A le premier sommet 
+                BA = -position[index,t]+position[i,t] # Vecteur BA avec A le premier sommet 
                 norm = np.linalg.norm(BA)
                 if norm<1e-12:
                     F_visq[i] = np.array([0,0])
@@ -66,18 +68,64 @@ def frottement_eau(vitesse:np.ndarray,neighbours:np.ndarray,position:np.ndarray,
                     cos_theta = np.dot(BA,np.array([1,0]))/np.linalg.norm(BA)
                     sin_theta = np.dot(BA,np.array([0,1]))/np.linalg.norm(BA)
                     u_theta = +cos_theta*np.array([0,1]) - sin_theta*np.array([1,0])
-                    v_orad_bout = (np.dot(vitesse[i,t]-v_moy,u_theta))*u_theta   # Vitesse ortho_radiale du bout du segment
-                    F_visq[i] =   - alpha*(np.linalg.norm(v_orad_bout)/4)*v_orad_bout                        # Force du point à r/2
+                    v_orad_bout = (np.dot(vitesse[i,t]-v_moy,u_theta))*u_theta                  # Vitesse ortho_radiale du bout du segment
+                    F_visq[i] =   - alpha*(np.linalg.norm(v_orad_bout)/4)*v_orad_bout           # Force du point à r/2
 
-    # Le dernier sommet correspond à inverser le calcul: on regarde l'angle de l'autre bout du bras donc on "déphase" de pi, cos= -cos, sin = -sin
+    return F_visq"""
 
-    if norm<1e-12:
-        F_visq[l-1] = np.array([0,0])
-    else:
-        u_theta = -u_theta
-        v_orad_bout = (np.dot(vitesse[l-1,t]-v_moy,u_theta))*u_theta   
-        F_visq[l-1] =   - alpha*(np.linalg.norm(v_orad_bout)/4)*v_orad_bout
-    
+"""def frottement_eau_2(vitesse:np.ndarray,neighbours:np.ndarray,position:np.ndarray,t,alpha:float = 1):
+    ""ça ne marche pas a l'aide bordel""
+    l=len(position)
+    F_visq = np.zeros((l,2))
+    v_moy = vitesse_moyenne(vitesse,t)
+
+    for i,_ in enumerate(position[:,t]):
+        voisins = [index for index, e in enumerate(neighbours[i]) if e != 0]
+        section_efficace = np.zeros((l))
+        for index in voisins:
+            BA = -position[index,t]+position[i,t] # Vecteur BA avec A le premier sommet 
+            norm = np.linalg.norm(BA)
+            v_reel = (vitesse[i,t]-v_moy)
+            if np.linalg.norm(v_reel) >1e-12:
+                v_unitaire = v_reel/np.linalg.norm(v_reel)
+                if norm>1e-12:
+                # Coordonnées locales 
+                    cos_theta = np.dot(BA,np.array([1,0]))/np.linalg.norm(BA)
+                    sin_theta = np.dot(BA,np.array([0,1]))/np.linalg.norm(BA)
+                    normale_locale = +cos_theta*np.array([0,1]) - sin_theta*np.array([1,0])
+                    # print(f"{index},vun:{v_unitaire},vre:{v_reel,norm}")
+                    section_efficace[index] = (norm*np.abs(np.dot(v_unitaire,normale_locale)))
+                    if np.sum(section_efficace)>1e-12:
+                        F_visq[index] += -alpha*v_reel*np.linalg.norm(v_reel)*section_efficace[index]/np.sum(section_efficace)    
+
+    return F_visq"""
+
+def frottement_eau_globale(vitesse:np.ndarray,neighbours:np.ndarray,position:np.ndarray,t,alpha:float = 1):
+    l=len(position)
+    F_visq = np.zeros((l,2))
+    v_moy = vitesse_moyenne(vitesse,t)
+
+    for i,_ in enumerate(position[:,t]):
+        voisins = [index for index, e in enumerate(neighbours[i]) if e != 0]
+        section_efficace = np.zeros((l))
+        for index in voisins:
+            BA = -position[index,t]+position[i,t] # Vecteur BA avec A le premier sommet 
+            norm = np.linalg.norm(BA)
+            if np.linalg.norm(v_moy) >1e-6:
+                v_unitaire = v_moy/np.linalg.norm(v_moy)
+                if norm>1e-6:
+                # Coordonnées locales 
+                    cos_theta = np.dot(BA,np.array([1,0]))/np.linalg.norm(BA)
+                    sin_theta = np.dot(BA,np.array([0,1]))/np.linalg.norm(BA)
+                    normale_locale = +cos_theta*np.array([0,1]) - sin_theta*np.array([1,0])
+                    # print(f"{index},vun:{v_unitaire},vre:{v_reel,norm}")
+                    section_efficace[index] = (norm*np.abs(np.dot(v_unitaire,normale_locale)))
+                
+                    if np.sum(section_efficace)>1e-6:
+                        F_visq[index] += -alpha*v_moy*np.linalg.norm(v_moy)*section_efficace[index]/np.sum(section_efficace)   
+                        #print("prour")
+                        #print(F_visq[index],np.sum(section_efficace),section_efficace[index],norm,cos_theta) 
+
     return F_visq
 
 def force_rappel_amortie(positions, vitesses, l0, t, k=10e-3, c=10):
@@ -142,7 +190,21 @@ def force_rappel(positions,l0,t):  #Renvoie la force de rappel totale qui s'appl
     return forces
 
 """
-
+def normales_locales(position,neighbours,t)->dict:
+    d = {}
+    for i in range(len(position)):
+        voisins = [index for index, e in enumerate(neighbours[i],start=0) if e != 0]
+        for index in voisins:
+            if ((index,i) in d) ^ ((i,index) not in d): 
+                BA = -position[index,t]+position[i,t] # Vecteur BA avec A le premier sommet 
+                norm = np.linalg.norm(BA)
+                if norm>1e-6:
+                # Coordonnées locales 
+                    cos_theta = np.dot(BA,np.array([1,0]))/np.linalg.norm(BA)
+                    sin_theta = np.dot(BA,np.array([0,1]))/np.linalg.norm(BA)
+                    normale_locale = +cos_theta*np.array([0,1]) - sin_theta*np.array([1,0])
+                    d[(index,i)] = normale_locale
+    return d
 
 
 def pfd(liste_force, t, mass=1):
@@ -185,8 +247,30 @@ def distance(position,t):
 
 
 
+"""def f_musc_cohérente(neighbours,position,f_musc,t):
+    l=len(position)
+    f_correction = np.zeros((l,2))
+    u_thetas = np.zeros((l,2))
+    for i in range(l):
+        for index,voisin in enumerate(neighbours[i]):
+            if voisin!=0:
+                BA = -position[i,t]+position[index,t]
+                norm = np.linalg.norm(BA)
+                if norm>1e-12:  #Si le segment est minuscule, pas de force
+                    cos_theta = np.dot(BA,np.array([1,0]))/norm
+                    sin_theta = np.dot(BA,np.array([0,1]))/norm
+                    u_theta = +cos_theta*np.array([0,1]) - sin_theta*np.array([1,0])
+                    u_thetas.append([i,index,BA,u_theta]))
 
 
+
+    return f_correction
+
+def f_réaction(neighbours,position,f_musc,t):
+    l=len(position)
+    for i in range(l):
+        n_vois=np.count_nonzero(neighbours[i])
+"""
 
 
 
@@ -231,12 +315,13 @@ def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
     for t in range(1,int(n_interval_time)):
 
         #calcul de la force de frottement liée à l'eau
-        f_eau[:,t] = frottement_eau(v,matrice_adjacence,xy,t-1,10)
-        #if np.linalg.norm(f_eau[:,t]) > 100:
-            #f_eau[:,t] = np.array([0,0]) 
+        f_eau[:,t] = frottement_eau_globale(v,matrice_adjacence,xy,t-1,1)
 
         #force de rappel en chacun des sommets
         f_rap[:,t] = force_rappel_amortie(xy, v, l0, t-1) 
+
+        #force musculaire efficace
+        #f_musc[:,t] = f_musc_cohérente(matrice_adjacence,xy,f_musc,t-1)
         #Array rassemblant les différentes forces
         #print(np.linalg.norm(f_eau[:,t]),np.linalg.norm(f_rap[:,t]))
         liste_forces = np.array([f_rap, f_eau,f_musc])
@@ -321,11 +406,9 @@ def check_line_cross(position:np.ndarray,t)->np.ndarray: # Fonction naïve pour 
 def see_creatures(event:pygame.event):
     global CURRENT_CREATURE
     if event.key == pygame.K_LEFT:
-            if CURRENT_CREATURE!=0:
-                CURRENT_CREATURE-=1
+        CURRENT_CREATURE = (CURRENT_CREATURE - 1)%(len(position_tot))
     if event.key == pygame.K_RIGHT:
-            if CURRENT_CREATURE<len(position_tot)-1:
-                CURRENT_CREATURE+=1
+        CURRENT_CREATURE = (CURRENT_CREATURE + 1)%(len(position_tot))
     return None
 
 def draw_creature(pos,t, offset):
@@ -393,6 +476,7 @@ med2 = [pos2, matrice_adjacence]
                  #
 
 force_initial = ([[[0,-15]], [[0,0]], [[0,0]]])
+force_initial2 = ([[[0,-15,]],[[0,0]]])
 
 
 meduse = [pos, matrice_adjacence,force_initial]
@@ -401,14 +485,15 @@ med2 = [pos2, matrice_adjacence, force_initial]
 """
 Test simple - le baton
 """
-#pos = np.array([[100,100], [150,150]])
-#matrice_adjacence = np.array([[0,1], [1,0]])
-baton = [pos, matrice_adjacence, force_initial]
+pos3 = np.array([[300,100], [250,150]])
+matrice_adjacence3 = np.array([[0,1], [1,0]])
+baton = [pos3, matrice_adjacence3, force_initial2]
 
 
 forces = []
 pos  = calcul_position(meduse)[1]
 pos2 = calcul_position(med2)[1]
+pos3 = calcul_position(baton)[1]
 t = 0
 
 """with open("creature_gagnante.json", "r", encoding="utf-8") as f:
@@ -416,7 +501,7 @@ t = 0
 
 #Test bulles
 bubbles = instantiate_bubbles(30)
-position_tot=np.array([pos])
+position_tot={0:pos,1:pos2,2:pos3}
 
 while running and t < DUREE_SIM/(1/60):
     for event in pygame.event.get():
@@ -432,8 +517,9 @@ while running and t < DUREE_SIM/(1/60):
     draw_bubbles(bubbles,offset,barycentre,0,t)
     draw_creature(pos,t, offset)
     draw_creature(pos2,t,offset)
+    draw_creature(pos3,t,offset)
     font=pygame.font.Font(None, 24)
-    text = font.render("distance : " + str(distance(position_tot[CURRENT_CREATURE],t)),1,(255,255,255))
+    text = font.render("N° : " + str(CURRENT_CREATURE)+" distance : " + str(distance(position_tot[CURRENT_CREATURE],t)) ,1,(255,255,255))
     screen.blit(text, (10, 10))
     
     pygame.display.flip()
