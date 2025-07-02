@@ -392,7 +392,7 @@ def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
         print(np.shape(force_reaction)) 
         #Array rassemblant les différentes forces
         #print(np.linalg.norm(f_eau[:,t]),np.linalg.norm(f_rap[:,t]))
-        liste_forces = np.array([f_rap, f_eau,f_musc])
+        liste_forces = np.array([f_rap, f_eau,f_musc_proj, force_reaction])  # Liste des forces appliquées à chaque noeud
         
         #Somme des forces et calcul du PFD au temps t
         a[:,t] = pfd(liste_forces, t)
