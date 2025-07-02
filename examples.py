@@ -6,7 +6,7 @@ import json
 
 
 LENGTH = 70
-NOMBRE_DE_CREATURES = 50
+NOMBRE_DE_CREATURES = 100
 
 def point_exists(new_pos, positions, tol=1e-6):
     """Fonction qui vérifie si le point new_pos recouvre un point déjà existant (vrai si recouvrement)"""
