@@ -58,18 +58,25 @@ def frottement_eau(vitesse:np.ndarray,neighbours:np.ndarray,position:np.ndarray,
     for i in range(l-1):
         for index, voisin in enumerate(neighbours[i]):
             if voisin!=0:
-                BA = -position[i+1,t-1]+position[i,t-1] # Vecteur BA avec A le premier sommet 
-                cos_theta = np.dot(BA,np.array([1,0]))/np.linalg.norm(BA)
-                sin_theta = np.dot(BA,np.array([0,1]))/np.linalg.norm(BA)
-                u_theta = +cos_theta*np.array([0,1]) - sin_theta*np.array([1,0])
-                v_orad_bout = (np.dot(vitesse[i,t-1]-v_moy,u_theta))*u_theta   # Vitesse ortho_radiale du bout du segment
-                F_visq[i] =  - alpha*(np.linalg.norm(v_orad_bout)/4)*v_orad_bout                        # Force du point à r/2
+                BA = -position[i+1,t]+position[i,t] # Vecteur BA avec A le premier sommet 
+                norm = np.linalg.norm(BA)
+                if norm<1e-12:
+                    F_visq[i] = np.array([0,0])
+                else:
+                    cos_theta = np.dot(BA,np.array([1,0]))/np.linalg.norm(BA)
+                    sin_theta = np.dot(BA,np.array([0,1]))/np.linalg.norm(BA)
+                    u_theta = +cos_theta*np.array([0,1]) - sin_theta*np.array([1,0])
+                    v_orad_bout = (np.dot(vitesse[i,t]-v_moy,u_theta))*u_theta   # Vitesse ortho_radiale du bout du segment
+                    F_visq[i] =   - alpha*(np.linalg.norm(v_orad_bout)/4)*v_orad_bout                        # Force du point à r/2
 
     # Le dernier sommet correspond à inverser le calcul: on regarde l'angle de l'autre bout du bras donc on "déphase" de pi, cos= -cos, sin = -sin
 
-    u_theta = -u_theta
-    v_orad_bout = (np.dot(vitesse[l-1,t-1]-v_moy,u_theta))*u_theta   
-    F_visq[l-1] =  - alpha*(np.linalg.norm(v_orad_bout)/4)*v_orad_bout
+    if norm<1e-12:
+        F_visq[l-1] = np.array([0,0])
+    else:
+        u_theta = -u_theta
+        v_orad_bout = (np.dot(vitesse[l-1,t]-v_moy,u_theta))*u_theta   
+        F_visq[l-1] =   - alpha*(np.linalg.norm(v_orad_bout)/4)*v_orad_bout
     
     return F_visq
 
@@ -153,11 +160,11 @@ def vitesse_moyenne(vitesse, t):
     t: float
     retourne : moyenne des vitesses sur le temps t
     """
-    vitesse_moy = np.sum(vitesse[:, t], axis=0)  # liste de 2 éléments : v_moy_x, v_moy_y
+    vitesse_moy = np.mean(vitesse[:, t], axis=0)  # liste de 2 éléments : v_moy_x, v_moy_y
     return vitesse_moy
 
 vit = np.array([[[4,8],[2,3]],[[1,2],[3,4]],[[0,0],[1,1]]])  # Exemple de vitesses pour 3 noeuds et 2 temps
-print("vitesse",vitesse_moyenne(vit, 1))  # Affiche la vitesse moyenne au temps t=1
+#print("vitesse",vitesse_moyenne(vit, 1))  # Affiche la vitesse moyenne au temps t=1
 
 def energie_cinetique(vitesse, t, masse = 1):
     """
@@ -168,7 +175,7 @@ def energie_cinetique(vitesse, t, masse = 1):
     energie = 0.5 * masse * np.sum(vitesse_norm**2)  # somme des énergies cinétiques
     return energie
 
-print("Energie cinétique", energie_cinetique(vit, 1))  # Affiche l'énergie cinétique pour les vitesses données
+#print("Energie cinétique", energie_cinetique(vit, 1))  # Affiche l'énergie cinétique pour les vitesses données
 
 
 def distance(position,t):
@@ -190,6 +197,7 @@ def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
     pos_init, matrice_adjacence, f_musc_periode = creature[0], creature[1], creature[2]
     n_nodes = len(pos_init)  # Nombre de noeuds dans la créature
     l0 = neighbors(pos_init, matrice_adjacence)
+
     #pos = [[100,100], [100,300]] #test pos initial pour 2 noeuds
     #neigh = [[0,200], [200,0]]   
 
@@ -221,13 +229,16 @@ def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
     gamma = 1200
     #Calcul itératif des forces/vitesses et positions
     for t in range(1,int(n_interval_time)):
+
         #calcul de la force de frottement liée à l'eau
-        f_eau[:,t] = frottement_eau(v,matrice_adjacence,xy,t)
-        #f_visc[:,t] = -gamma*v[:,t]
+        f_eau[:,t] = frottement_eau(v,matrice_adjacence,xy,t-1,10)
+        #if np.linalg.norm(f_eau[:,t]) > 100:
+            #f_eau[:,t] = np.array([0,0]) 
+
         #force de rappel en chacun des sommets
         f_rap[:,t] = force_rappel_amortie(xy, v, l0, t-1) 
         #Array rassemblant les différentes forces
-        #print(f_rap[0,t],f_eau[0,t],f_musc[0,t])
+        #print(np.linalg.norm(f_eau[:,t]),np.linalg.norm(f_rap[:,t]))
         liste_forces = np.array([f_rap, f_eau,f_musc])
         
         #Somme des forces et calcul du PFD au temps t
@@ -256,9 +267,9 @@ def iter_score(position, vitesse): # Calcule les grandeurs liées au score d'UNE
     distance = np.linalg.norm(centre_de_masse(position,0) - centre_de_masse(position,-1))
     return energie,distance,masse #return energie distance taille
 
-def selection(score_total:np.ndarray,force_total,):
-
-    return None
+def selection(score_total:np.ndarray,force_total,N_selected):
+    sorted = np.sort(score_total)
+    return sorted
 
 
 def check_line_cross(position:np.ndarray,t)->np.ndarray: # Fonction naïve pour empêcher les croisements de segments
@@ -374,7 +385,7 @@ med2 = [pos2, matrice_adjacence]
 
 
 
-#test de forces aléatoires
+# test de forces aléatoires
 
 #force_initial = [[[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]] , 
               #   [[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0][0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]], 
@@ -422,7 +433,7 @@ while running and t < DUREE_SIM/(1/60):
     draw_creature(pos,t, offset)
     draw_creature(pos2,t,offset)
     font=pygame.font.Font(None, 24)
-    text = font.render("distance : " + str(distance(pos,t)),1,(255,255,255))
+    text = font.render("distance : " + str(distance(position_tot[CURRENT_CREATURE],t)),1,(255,255,255))
     screen.blit(text, (10, 10))
     
     pygame.display.flip()
