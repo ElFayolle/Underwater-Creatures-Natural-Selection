@@ -98,19 +98,25 @@ def force_rappel_amortie(positions, vitesses, l0, t, k=10e-3, c=10):
     F_total[l0 == 0] = 0.0
     return F_total.sum(axis=0)
 
-
-def action_reaction(force_musc, pos, l0):
+def contrainte_longueurs(xy_t, l0, matrice_adjacence):
     """
-
+    Ajuste xy_t (positions au temps t) pour que la distance entre chaque paire de noeuds connectés soit égale à l0.
+    Utilise une correction simple itérative.
     """
-    force_reaction = np.zeros((len(pos), 2))  # Initialisation des forces de réaction
-    for i in range(len(pos)):
-        for j in range(len(pos)):
-            if l0[i, j] > 0:
-                # Calcul de la force de réaction selon le principe d'action-réaction
-                force_reaction[i] += -force_musc[j]
-    return force_reaction
-
+    n = len(xy_t)
+    for _ in range(5):  # nombre d'itérations de correction (à ajuster)
+        for i in range(n):
+            for j in range(i+1, n):
+                if matrice_adjacence[i, j] != 0:
+                    vec = xy_t[j] - xy_t[i]
+                    dist = np.linalg.norm(vec)
+                    if dist == 0:
+                        continue
+                    diff = dist - l0[i, j]
+                    correction = (diff / 2) * (vec / dist)
+                    xy_t[i] += correction
+                    xy_t[j] -= correction
+    return xy_t
 
 """
 
@@ -191,15 +197,51 @@ def distance(position,t):
 
 
 
+def action_reaction(force_musc, pos, l0):
+    """
+
+    """
+    force_reaction = np.zeros((len(pos), 2))  # Initialisation des forces de réaction
+    for i in range(len(pos)):
+        for j in range(len(pos)):
+            if l0[i, j] > 0:
+                # Calcul de la force de réaction selon le principe d'action-réaction
+                force_reaction[i] += -force_musc[j]
+    return force_reaction
 
 
+def orthogonalise_force(force_musc, pos, l0):
+    """
+    Force musculaire orthogonalisée pour chaque noeud d'une créature.
+    force_musc: (n_nodes, n_interval_time, 2)
+    pos: (n_nodes, n_interval_time, 2)
+    l0: (n_nodes, n_nodes)
+    retourne : force_musc orthogonalisée
+    """
+    n_nodes = len(pos)
+    force_orthogonalisee = np.zeros(force_musc.shape, dtype=np.float64) 
+    for i in range(n_nodes):
+        for j in range(n_nodes):
+            if l0[i, j] > 0:
+                # Calcul de la force orthogonale
+                vec = pos[j] - pos[i]
+                print(vec)
+                vec_orth = np.array([-vec[1], vec[0]])  # Vecteur orthogonal
+                norm_vec = np.linalg.norm(vec_orth) + 1e-12  # Éviter division par zéro
+                unit_vec = vec_orth / norm_vec
+                force_orthogonalisee[j] += np.dot(force_musc[j], unit_vec) * unit_vec
 
+    return force_orthogonalisee
 
-
-
+print(orthogonalise_force(np.array([[0,0],[1,2]]), np.array([[0,0], [0,2]]), np.array([[0,1],[1,0]])))  # Exemple de force musculaire orthogonalisée pour 2 noeuds
 #calcul_position(np.Array()#cycle de forces de la créature, float #pas de temps, float #temps de simul, int #nombre de noeuds) -> vitesse et position 
 def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
 
+
+
+    import time
+
+    time.sleep(12)
     pos_init, matrice_adjacence, f_musc_periode = creature[0], creature[1], creature[2]
     n_nodes = len(pos_init)  # Nombre de noeuds dans la créature
     l0 = neighbors(pos_init, matrice_adjacence)
@@ -241,10 +283,10 @@ def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
         #f_visc[:,t] = -gamma*v[:,t]
         #force de rappel en chacun des sommets
         f_rap[:,t] = force_rappel_amortie(xy, v, l0, t-1) 
-        force_reaction[:,t] = action_reaction(f_musc[:,t], xy[:,t], l0)  
-        print(np.shape(f_rap))
-        print(np.shape(force_reaction)) 
+        force_reaction[:,t] = action_reaction(f_musc[:,t], xy[:,t], l0)   
         #Array rassemblant les différentes forces
+        
+        f_musc[:,t] = orthogonalise_force(f_musc[:,t], xy[:,t], l0)
         liste_forces = np.array([f_rap, force_reaction,f_musc])
         
         #Somme des forces et calcul du PFD au temps t
@@ -254,7 +296,6 @@ def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
         v[:, t] = v[:, t-1] + dt * a[:, t-1]
         xy[:, t] = xy[:, t-1] + dt * v[:, t-1]
     return (v, xy)
-
 
 
 #Fonction qui calcule le "score" de chaque créature - amené à changer.
