@@ -6,7 +6,7 @@ import json
 
 
 LENGTH = 70
-NOMBRE_DE_CREATURES = 5
+NOMBRE_DE_CREATURES = 25
 
 def point_exists(new_pos, positions, tol=1e-6):
     """Fonction qui vérifie si le point new_pos recouvre un point déjà existant (vrai si recouvrement)"""
@@ -135,34 +135,34 @@ for i in range(NOMBRE_DE_CREATURES):
     pos, dist = create_random_creature()
     creatures_tot[i] = [pos, dist]
 
-# fig, axes = plt.subplots(5, 5, figsize=(15, 6))
-# axes = axes.flatten()
+fig, axes = plt.subplots(5, 5, figsize=(15, 6))
+axes = axes.flatten()
 
-# for i, ax in enumerate(axes):
-#     pos, dist = creatures[i]
-#     for j in range(len(pos)):
-#         x, y = pos[j]
-#         ax.plot(x, y, 'ko')
-#         ax.text(x + 1, y + 1, str(j), fontsize=8)
-#         for k in range(j+1, len(pos)):
-#             if dist[j][k] != 0:
-#                 x2, y2 = pos[k]
-#                 ax.plot([x, x2], [y, y2], 'b-')
+for i, ax in enumerate(axes):
+    pos, dist = creatures_tot[i]
+    for j in range(len(pos)):
+        x, y = pos[j]
+        ax.plot(x, y, 'ko')
+        ax.text(x + 1, y + 1, str(j), fontsize=8)
+        for k in range(j+1, len(pos)):
+            if dist[j][k] != 0:
+                x2, y2 = pos[k]
+                ax.plot([x, x2], [y, y2], 'b-')
 
-#     ax.set_title(f"Créature {i}")
-#     ax.axis('equal')
-#     ax.set_xticks([])
-#     ax.set_yticks([])
-#     ax.grid(True)
+    ax.set_title(f"Créature {i}")
+    ax.axis('equal')
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.grid(True)
 
-# plt.tight_layout()
-# plt.show()
+plt.tight_layout()
+plt.show()
 
 MIN_TICKS = 50
 MAX_TICKS = 60
 MIN_N_MOVEMENTS = 3
 MAX_N_MOVEMENTS = 6
-MIN_FORCE_MUSC = 0.1
+MIN_FORCE_MUSC = -0.5
 MAX_FORCE_MUSC = 0.5
 
 def adn_longueur_segment(creature):
@@ -198,16 +198,67 @@ def adn_longueur_segment(creature):
     return (positions, connections, forces)
 
 
-#### FONCTION NON TESTEE PAR ELIOTT ####
 def adn_changement_amplitude_force(creature):
     """Modifie les forces appliquées au cours d'un cycle.
     Prend en argument une créature [positions, matrice, forces] et renvoie une créature avec des forces au même moment mais de valeur différente"""
-    forces = creature[2]
-    for noeud in range(len(forces)):
-        for index, force in enumerate.forces[noeud] :
-            if force != [0, 0] :
-                forces[noeud][i] += random.randint(-100, 100) * force / 100
+    forces = np.zeros(np.shape(creature[2]))
+
+    for noeud in range(len(creature[2])):
+        for index, force in enumerate(creature[2][noeud]) :
+            if force.any() != 0. :
+                forces[noeud][index] = force * random.randint(-200, 200) / 100
     return([creature[0], creature[1], forces])
+
+
+
+def adn_changement_ordre_force(creature):
+    """Modifie l'ordre dans lequel les forces du cycle s'appliquent sur les noeuds.
+    Prend en argument une créature [positions, matrice, forces] et renvoie une créature avec des forces de même amplitude mais pas au même moment"""
+    forces = np.zeros(np.shape(creature[2]))
+
+    for noeud in range(len(creature[2])):
+        liste_forces = [force for force in creature[2][noeud] if force.any() != 0]
+        indices = random.sample([k for k in range(len(creature[2][0]))], len(liste_forces))
+        for i in indices :
+            forces[noeud][i] = liste_forces.pop()
+    return([creature[0], creature[1], forces])
+
+#### A TERMINER, NE FONCTIONNE PAS
+def adn_ajout_segment(creature):
+    """Ajoute un nouveau noeud (et donc un segment) à la créature.
+    Prend en argument une créature [positions, matrice, forces] et renvoie une créature (avec un noeud de plus)"""
+    
+    sommet = random.randint(0, len(creature[0]) - 1)
+    max_iterations = 10
+    randomized_length = random.gauss(LENGTH, LENGTH/3)
+    while max_iterations > 0 :
+
+        angle = random.randint(1,360)
+        angle_rad = math.radians(angle)
+        dy = randomized_length * math.sin(angle_rad)
+        dx = randomized_length * math.cos(angle_rad)
+
+        # Nouvelle position candidate
+        new_pos = [creature[0][sommet][0] + dx, creature[0][sommet][1] + dy]
+        
+        #Eviter les croisements
+        if croisement(creature[0], creature[1], new_pos, sommet):
+            max_iterations -= 1
+            continue
+
+        np.append(creature[0], new_pos)
+
+        # Mettre à jour matrice de distances
+        for row in creature[1]:
+            np.append(row, 0)
+        new_row = [0] * len(creature[0])
+        new_row[sommet] = randomized_length
+        creature[1][sommet][len(creature[0]) - 1] = randomized_length
+        np.append(creature[1], new_row)
+        max_iterations = 0
+    return ([creature[0], creature[1], creature[2]])
+
+
 
 
 
@@ -223,22 +274,22 @@ for key, value in creatures_tot.items():
     force_musc[mask] = MIN_FORCE_MUSC + (MAX_FORCE_MUSC - MIN_FORCE_MUSC) * np.random.random((mask.sum(),2))
     creatures_tot[key].append(force_musc)
 
-with open("creatures_text.txt", "w", encoding = 'utf-8') as fichier_texte :
-  for key, creature in creatures_tot.items() :
-      fichier_texte.write(f"Créature n° {key} :\n\n")
-      fichier_texte.write(f"Positions des noeuds : \n{creature[0]}\n\n\n")
-      fichier_texte.write(f"Matrice d'adjacence avec distances : \n{creature[1]}\n\n\n")
-      fichier_texte.write(f"Forces par noeud en fonction du temps : \n{creature[2]}\n\n\n")
+# with open("creatures_text.txt", "w", encoding = 'utf-8') as fichier_texte :
+#   for key, creature in creatures_tot.items() :
+#       fichier_texte.write(f"Créature n° {key} :\n\n")
+#       fichier_texte.write(f"Positions des noeuds : \n{creature[0]}\n\n\n")
+#       fichier_texte.write(f"Matrice d'adjacence avec distances : \n{creature[1]}\n\n\n")
+#       fichier_texte.write(f"Forces par noeud en fonction du temps : \n{creature[2]}\n\n\n")
 
-with open("creatures.json", "w", encoding="utf-8") as f:
-    json_creatures = []
-    for key, creature in creatures_tot.items():
-        # Convertir en listes natives
-        pos = creature[0].tolist() if hasattr(creature[0], "tolist") else creature[0]
-        mat = creature[1].tolist() if hasattr(creature[1], "tolist") else creature[1]
-        forc = creature[2].tolist() if hasattr(creature[2], "tolist") else creature[2]
-        json_creatures.append([key, pos, mat, forc])
-    json.dump(json_creatures, f, indent=2)
+# with open("creatures.json", "w", encoding="utf-8") as f:
+#     json_creatures = []
+#     for key, creature in creatures_tot.items():
+#         # Convertir en listes natives
+#         pos = creature[0].tolist() if hasattr(creature[0], "tolist") else creature[0]
+#         mat = creature[1].tolist() if hasattr(creature[1], "tolist") else creature[1]
+#         forc = creature[2].tolist() if hasattr(creature[2], "tolist") else creature[2]
+#         json_creatures.append([key, pos, mat, forc])
+#     json.dump(json_creatures, f, indent=2)
 
-with open("creatures_text.txt") as fichier_texte:
-  print(fichier_texte.read())
+# with open("creatures_text.txt") as fichier_texte:
+#   print(fichier_texte.read())
