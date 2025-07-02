@@ -5,6 +5,6 @@ import main as m
 with open("creatures.json", "r", encoding="utf-8") as f:
     creatures = json.load(f)
 
-creatures_sans_index = [liste[1:] for liste in creatures]  # Enlever l'index de chaque créature
-c = np.array(creatures_sans_index, dtype=object)  # Convertir en tableau numpy d'objets
-d = m.calcul_position(c)
+creatures_sans_index = [[np.array(element) for element in creature[1:]] for creature in creatures]  # Enlever l'index de chaque créature
+results = [m.calcul_position(creature) for creature in creatures_sans_index]
+print(results)

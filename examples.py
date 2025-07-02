@@ -16,23 +16,24 @@ def point_exists(new_pos, positions, tol=1e-6):
     return False
 
 def croisement(positions, connections, new_pos, base_index):
-    """Vérifie si le dernier segment ajouté (entre new_pos et le point d'indice base_index) croise un segment existant
-    Renvoie True si le segment est invalide (False si pas de croisement)"""
+    """Vérifie si le segment [base_index - new_pos] croise un autre segment existant.
+    Renvoie True s'il y a croisement, False sinon."""
     point1 = (positions[base_index][0], positions[base_index][1])
     point2 = (new_pos[0], new_pos[1])
 
     new_segment = (point1, point2)
 
-    #Etablir la liste des segments existants sous la forme (point1, point2)
     liste_segments = []
     for i in range(len(connections)):
         for j in range(i):
-            if connections[i][j] != 0 :
+            if connections[i][j] != 0:
+                # Éviter les segments liés à base_index
+                if i == base_index or j == base_index:
+                    continue
                 segment = ((positions[i][0], positions[i][1]), (positions[j][0], positions[j][1]))
                 liste_segments.append(segment)
 
-    #Vérification de croisement pour chaque segment
-    for seg in liste_segments :
+    for seg in liste_segments:
         if croisement_segments(new_segment, seg):
             return True
 
@@ -163,6 +164,52 @@ MIN_N_MOVEMENTS = 3
 MAX_N_MOVEMENTS = 6
 MIN_FORCE_MUSC = 0.1
 MAX_FORCE_MUSC = 0.5
+
+def adn_longueur_segment(creature):
+    """Modifie la longueur d'un segment (entre deux points connectés) de la créature.
+    Ne modifie la créature que si la nouvelle configuration est valide (sans croisement), sinon la créature reste la même."""
+    positions, connections, forces = creature[0], creature[1], creature[2]
+    n = len(positions)
+
+    # Choisir un sommet k, puis un voisin i (on suppose que k a toujours au moins un voisin)
+    k = random.randint(0, n - 1)
+    voisins = [j for j in range(n) if connections[k][j] != 0]
+    i = random.choice(voisins)
+
+    # Vecteur du segment ik
+    vec = np.array(positions[k]) - np.array(positions[i])
+    current_length = np.linalg.norm(vec)
+
+    # Nouvelle longueur perturbée
+    new_length = current_length + random.gauss(0, LENGTH / 2)
+
+    direction = vec / current_length
+    new_pos_k = np.array(positions[i]) + new_length * direction
+
+    # Vérification de croisement avec les segments existants
+    if croisement(positions, connections, new_pos_k, i):
+        return creature
+
+    # Appliquer la mutation
+    positions[k] = new_pos_k.tolist()
+    connections[k][i] = new_length
+    connections[i][k] = new_length
+
+    return (positions, connections, forces)
+
+
+#### FONCTION NON TESTEE PAR ELIOTT ####
+def adn_changement_amplitude_force(creature):
+    """Modifie les forces appliquées au cours d'un cycle.
+    Prend en argument une créature [positions, matrice, forces] et renvoie une créature avec des forces au même moment mais de valeur différente"""
+    forces = creature[2]
+    for noeud in range(len(forces)):
+        for index, force in enumerate.forces[noeud] :
+            if force != [0, 0] :
+                forces[noeud][i] += random.randint(-100, 100) * force / 100
+    return([creature[0], creature[1], forces])
+
+
 
 # Nombre aléatoire de ticks par cycle, de mouvements par noeud dans un cycle, et de valeurs de force musculaire par noeud dans un cycle
 for key, value in creatures_tot.items():

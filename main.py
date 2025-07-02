@@ -4,6 +4,7 @@ import numpy as np
 pygame.init()
 # Set up the display
 WIDTH, HEIGHT = 800, 600
+DUREE_SIM = 1  # Durée de la simulation en secondes
 CURRENT_CREATURE = 0
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Natural Selection Simulation")
@@ -183,10 +184,10 @@ def distance(position,t):
 
 
 #calcul_position(np.Array()#cycle de forces de la créature, float #pas de temps, float #temps de simul, int #nombre de noeuds) -> vitesse et position 
-def calcul_position(creature, dt = 1/60, T = 100.):
+def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
 
-    n_nodes = len(pos)
     pos_init, matrice_adjacence, f_musc_periode = creature[0], creature[1], creature[2]
+    n_nodes = len(pos_init)  # Nombre de noeuds dans la créature
     l0 = neighbors(pos_init, matrice_adjacence)
     #pos = [[100,100], [100,300]] #test pos initial pour 2 noeuds
     #neigh = [[0,200], [200,0]]   
@@ -397,7 +398,7 @@ t = 0
 bubbles = instantiate_bubbles(30)
 position_tot=np.array([pos,pos2])
 
-while running and t < 100/(1/60):
+while running and t < DUREE_SIM/(1/60):
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
