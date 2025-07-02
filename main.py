@@ -190,7 +190,21 @@ def force_rappel(positions,l0,t):  #Renvoie la force de rappel totale qui s'appl
     return forces
 
 """
-
+def normales_locales(position,neighbours,t)->dict:
+    d = {}
+    for i in range(len(position)):
+        voisins = [index for index, e in enumerate(neighbours[i],start=0) if e != 0]
+        for index in voisins:
+            if ((index,i) in d) ^ ((i,index) not in d): 
+                BA = -position[index,t]+position[i,t] # Vecteur BA avec A le premier sommet 
+                norm = np.linalg.norm(BA)
+                if norm>1e-6:
+                # Coordonnées locales 
+                    cos_theta = np.dot(BA,np.array([1,0]))/np.linalg.norm(BA)
+                    sin_theta = np.dot(BA,np.array([0,1]))/np.linalg.norm(BA)
+                    normale_locale = +cos_theta*np.array([0,1]) - sin_theta*np.array([1,0])
+                    d[(index,i)] = normale_locale
+    return d
 
 
 def pfd(liste_force, t, mass=1):
@@ -392,11 +406,9 @@ def check_line_cross(position:np.ndarray,t)->np.ndarray: # Fonction naïve pour 
 def see_creatures(event:pygame.event):
     global CURRENT_CREATURE
     if event.key == pygame.K_LEFT:
-            if CURRENT_CREATURE!=0:
-                CURRENT_CREATURE-=1
+        CURRENT_CREATURE = (CURRENT_CREATURE - 1)%(len(position_tot))
     if event.key == pygame.K_RIGHT:
-            if CURRENT_CREATURE<len(position_tot)-1:
-                CURRENT_CREATURE+=1
+        CURRENT_CREATURE = (CURRENT_CREATURE + 1)%(len(position_tot))
     return None
 
 def draw_creature(pos,t, offset):
@@ -464,6 +476,7 @@ med2 = [pos2, matrice_adjacence]
                  #
 
 force_initial = ([[[0,-15]], [[0,0]], [[0,0]]])
+force_initial2 = ([[[0,-15,]],[[0,0]]])
 
 
 meduse = [pos, matrice_adjacence,force_initial]
@@ -472,14 +485,15 @@ med2 = [pos2, matrice_adjacence, force_initial]
 """
 Test simple - le baton
 """
-#pos = np.array([[100,100], [150,150]])
-#matrice_adjacence = np.array([[0,1], [1,0]])
-baton = [pos, matrice_adjacence, force_initial]
+pos3 = np.array([[300,100], [250,150]])
+matrice_adjacence3 = np.array([[0,1], [1,0]])
+baton = [pos3, matrice_adjacence3, force_initial2]
 
 
 forces = []
 pos  = calcul_position(meduse)[1]
 pos2 = calcul_position(med2)[1]
+pos3 = calcul_position(baton)[1]
 t = 0
 
 """with open("creature_gagnante.json", "r", encoding="utf-8") as f:
@@ -487,7 +501,7 @@ t = 0
 
 #Test bulles
 bubbles = instantiate_bubbles(30)
-position_tot=np.array([pos])
+position_tot={0:pos,1:pos2,2:pos3}
 
 while running and t < DUREE_SIM/(1/60):
     for event in pygame.event.get():
@@ -503,8 +517,9 @@ while running and t < DUREE_SIM/(1/60):
     draw_bubbles(bubbles,offset,barycentre,0,t)
     draw_creature(pos,t, offset)
     draw_creature(pos2,t,offset)
+    draw_creature(pos3,t,offset)
     font=pygame.font.Font(None, 24)
-    text = font.render("distance : " + str(distance(position_tot[CURRENT_CREATURE],t)),1,(255,255,255))
+    text = font.render("N° : " + str(CURRENT_CREATURE)+" distance : " + str(distance(position_tot[CURRENT_CREATURE],t)) ,1,(255,255,255))
     screen.blit(text, (10, 10))
     
     pygame.display.flip()
