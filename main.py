@@ -5,7 +5,7 @@ import json
 pygame.init()
 # Set up the display
 WIDTH, HEIGHT = 800, 600
-DUREE_SIM = 100  # Durée de la simulation en secondes
+DUREE_SIM = 10  # Durée de la simulation en secondes
 CURRENT_CREATURE = 0
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Natural Selection Simulation")
@@ -229,12 +229,16 @@ def force_musc_projetee_copilot(position,neighbours,f_musc,t):
     return f_musc_proj
 
 def force_musc_projetee(position,neighbours,f_musc,t):
+    eps = 1e-10
     n_nodes = len(position)
     norm_locales = somme_normales_locales(position,neighbours,t)
     f_musc_t = f_musc[:, t]  # Forces musculaires au temps t
     f_musc_proj = np.zeros((n_nodes, 2))
     for i in range(n_nodes):
-        f_musc_proj[i] = np.dot(f_musc_t[i], norm_locales[i]) * norm_locales[i] / np.linalg.norm(norm_locales[i])
+        if np.linalg.norm(norm_locales[i]) < eps:
+            f_musc_proj[i] = np.array([0, 0])  # Si la normale est nulle, pas de force projetée
+        else:
+            f_musc_proj[i] = np.dot(f_musc_t[i], norm_locales[i]) * norm_locales[i] / (np.linalg.norm(norm_locales[i])**2)
     return f_musc_proj
 
 
@@ -388,8 +392,8 @@ def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
 
         f_musc_proj[:,t] = force_musc_projetee(xy, matrice_adjacence, f_musc, t-1) 
         force_reaction[:,t] = action_reaction(f_musc[:,t], xy[:,t], l0)  
-        print(np.shape(f_rap))
-        print(np.shape(force_reaction)) 
+        #print(np.shape(f_rap))
+        #print(np.shape(force_reaction)) 
         #Array rassemblant les différentes forces
         #print(np.linalg.norm(f_eau[:,t]),np.linalg.norm(f_rap[:,t]))
         liste_forces = np.array([f_rap, f_eau,f_musc_proj, force_reaction])  # Liste des forces appliquées à chaque noeud
@@ -400,6 +404,8 @@ def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
         #Calcul de la vitesse et position au temps t
         v[:, t] = v[:, t-1] + dt * a[:, t-1]
         xy[:, t] = xy[:, t-1] + dt * v[:, t-1]
+        #if t >= 2:
+        #    xy[:, t] = 2*xy[:, t-1] - xy[:, t-2] + dt**2 * a[:, t-1]  # Méthode de Verlet pour la position
     
     #Calcul de l'énergie cinétique et de la distance parcourue
     energie = energie_cinetique(v, n_interval_time-1)
@@ -567,8 +573,8 @@ pos2 = calcul_position(med2)[1]
 pos3 = calcul_position(baton)[1]
 t = 0
 
-"""with open("creature_gagnante.json", "r", encoding="utf-8") as f:
-    pos = np.array(json.load(f)[1])"""
+with open("creature_gagnante.json", "r", encoding="utf-8") as f:
+    pos = np.array(json.load(f)[1])
 
 #Test bulles
 bubbles = instantiate_bubbles(30)

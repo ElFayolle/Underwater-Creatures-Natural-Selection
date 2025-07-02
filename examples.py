@@ -160,8 +160,8 @@ plt.show()
 
 MIN_TICKS = 50
 MAX_TICKS = 60
-MIN_N_MOVEMENTS = 20
-MAX_N_MOVEMENTS = 30
+MIN_N_MOVEMENTS = 10
+MAX_N_MOVEMENTS = 20
 MIN_FORCE_MUSC = -1000
 MAX_FORCE_MUSC = 1000
 
@@ -274,22 +274,22 @@ for key, value in creatures_tot.items():
     force_musc[mask] = MIN_FORCE_MUSC + (MAX_FORCE_MUSC - MIN_FORCE_MUSC) * np.random.random((mask.sum(),2))
     creatures_tot[key].append(force_musc)
 
-# with open("creatures_text.txt", "w", encoding = 'utf-8') as fichier_texte :
-#   for key, creature in creatures_tot.items() :
-#       fichier_texte.write(f"Créature n° {key} :\n\n")
-#       fichier_texte.write(f"Positions des noeuds : \n{creature[0]}\n\n\n")
-#       fichier_texte.write(f"Matrice d'adjacence avec distances : \n{creature[1]}\n\n\n")
-#       fichier_texte.write(f"Forces par noeud en fonction du temps : \n{creature[2]}\n\n\n")
+with open("creatures_text.txt", "w", encoding = 'utf-8') as fichier_texte :
+  for key, creature in creatures_tot.items() :
+      fichier_texte.write(f"Créature n° {key} :\n\n")
+      fichier_texte.write(f"Positions des noeuds : \n{creature[0]}\n\n\n")
+      fichier_texte.write(f"Matrice d'adjacence avec distances : \n{creature[1]}\n\n\n")
+      fichier_texte.write(f"Forces par noeud en fonction du temps : \n{creature[2]}\n\n\n")
 
-# with open("creatures.json", "w", encoding="utf-8") as f:
-#     json_creatures = []
-#     for key, creature in creatures_tot.items():
-#         # Convertir en listes natives
-#         pos = creature[0].tolist() if hasattr(creature[0], "tolist") else creature[0]
-#         mat = creature[1].tolist() if hasattr(creature[1], "tolist") else creature[1]
-#         forc = creature[2].tolist() if hasattr(creature[2], "tolist") else creature[2]
-#         json_creatures.append([key, pos, mat, forc])
-#     json.dump(json_creatures, f, indent=2)
+with open("creatures.json", "w", encoding="utf-8") as f:
+    json_creatures = []
+    for key, creature in creatures_tot.items():
+        # Convertir en listes natives
+        pos = creature[0].tolist() if hasattr(creature[0], "tolist") else creature[0]
+        mat = creature[1].tolist() if hasattr(creature[1], "tolist") else creature[1]
+        forc = creature[2].tolist() if hasattr(creature[2], "tolist") else creature[2]
+        json_creatures.append([key, pos, mat, forc])
+    json.dump(json_creatures, f, indent=2)
 
-# with open("creatures_text.txt") as fichier_texte:
-#   print(fichier_texte.read())
+with open("creatures_text.txt") as fichier_texte:
+  print(fichier_texte.read())
