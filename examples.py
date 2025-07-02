@@ -130,33 +130,34 @@ def distances_match(positions, distance_matrix):
 def is_valid_creature(positions, distance_matrix):
     return is_symmetric(distance_matrix) and distances_match(positions, distance_matrix)
 
-creatures_tot = {}
-for i in range(NOMBRE_DE_CREATURES):
-    pos, dist = create_random_creature()
-    creatures_tot[i] = [pos, dist]
 
-fig, axes = plt.subplots(5, 5, figsize=(15, 6))
-axes = axes.flatten()
+# creatures_tot = {}
+# for i in range(NOMBRE_DE_CREATURES):
+#     pos, dist = create_random_creature()
+#     creatures_tot[i] = [pos, dist]
 
-for i, ax in enumerate(axes):
-    pos, dist = creatures_tot[i]
-    for j in range(len(pos)):
-        x, y = pos[j]
-        ax.plot(x, y, 'ko')
-        ax.text(x + 1, y + 1, str(j), fontsize=8)
-        for k in range(j+1, len(pos)):
-            if dist[j][k] != 0:
-                x2, y2 = pos[k]
-                ax.plot([x, x2], [y, y2], 'b-')
+# fig, axes = plt.subplots(5, 5, figsize=(15, 6))
+# axes = axes.flatten()
 
-    ax.set_title(f"Créature {i}")
-    ax.axis('equal')
-    ax.set_xticks([])
-    ax.set_yticks([])
-    ax.grid(True)
+# for i, ax in enumerate(axes):
+#     pos, dist = creatures_tot[i]
+#     for j in range(len(pos)):
+#         x, y = pos[j]
+#         ax.plot(x, y, 'ko')
+#         ax.text(x + 1, y + 1, str(j), fontsize=8)
+#         for k in range(j+1, len(pos)):
+#             if dist[j][k] != 0:
+#                 x2, y2 = pos[k]
+#                 ax.plot([x, x2], [y, y2], 'b-')
 
-plt.tight_layout()
-plt.show()
+#     ax.set_title(f"Créature {i}")
+#     ax.axis('equal')
+#     ax.set_xticks([])
+#     ax.set_yticks([])
+#     ax.grid(True)
+
+# plt.tight_layout()
+# plt.show()
 
 MIN_TICKS = 50
 MAX_TICKS = 60
@@ -223,15 +224,23 @@ def adn_changement_ordre_force(creature):
             forces[noeud][i] = liste_forces.pop()
     return([creature[0], creature[1], forces])
 
-#### A TERMINER, NE FONCTIONNE PAS
+
+
+
+
 def adn_ajout_segment(creature):
-    """Ajoute un nouveau noeud (et donc un segment) à la créature.
-    Prend en argument une créature [positions, matrice, forces] et renvoie une créature (avec un noeud de plus)"""
+    """Ajoute un nouveau noeud (et donc un segment) à la créature si possible.
+    Prend en argument une créature [positions, matrice, forces] et renvoie une créature (avec un noeud de plus)
+    On tente 10 fois de placer un nouveau segment (avec 10 positions différentes), si on a 10 échecs on abandonne en renvoyant la créature telle quelle"""
     
-    sommet = random.randint(0, len(creature[0]) - 1)
     max_iterations = 10
-    randomized_length = random.gauss(LENGTH, LENGTH/3)
+    positions = creature[0]
+    connections = creature[1]
+    forces = creature[2]
+
     while max_iterations > 0 :
+        randomized_length = random.gauss(LENGTH, LENGTH/3)
+        sommet = random.randint(0, len(creature[0]) - 1)
 
         angle = random.randint(1,360)
         angle_rad = math.radians(angle)
@@ -243,21 +252,77 @@ def adn_ajout_segment(creature):
         
         #Eviter les croisements
         if croisement(creature[0], creature[1], new_pos, sommet):
-            max_iterations -= 1
+            max_iterations = max_iterations - 1
             continue
-
-        np.append(creature[0], new_pos)
-
+        
+        positions = np.concatenate([positions, [new_pos]])
+        
         # Mettre à jour matrice de distances
-        for row in creature[1]:
-            np.append(row, 0)
-        new_row = [0] * len(creature[0])
+        connections = np.array([np.append(connections[k], 0) for k in range(len(connections))])
+        
+            
+        new_row = [0] * len(positions)
         new_row[sommet] = randomized_length
-        creature[1][sommet][len(creature[0]) - 1] = randomized_length
-        np.append(creature[1], new_row)
-        max_iterations = 0
-    return ([creature[0], creature[1], creature[2]])
+        
+        connections = np.concatenate([connections, [new_row]])
 
+        connections[sommet][-1] = randomized_length
+        max_iterations = 0
+    return ([positions, connections, forces])
+
+
+def adn_suppression_segment(creature):
+    """Retire le dernier noeud (et donc un segment) de la créature.
+    Prend en argument une créature [positions, matrice, forces] et renvoie une créature (avec un noeud de moins)"""
+    
+    positions = creature[0]
+    connections = creature[1]
+    forces = creature[2]
+    n = len(positions)
+
+    print(connections, positions)
+
+    positions = positions[:-1]
+    
+    # Mettre à jour matrice de distances
+    connections = connections[:-1, :-1]
+    
+    print(connections, positions)
+    return ([positions, connections, forces])
+
+
+
+pos, dist = create_random_creature()
+creature_test = [pos, dist]
+n = len(pos) # Nombre de noeuds
+ticks = random.randint(MIN_TICKS, MAX_TICKS) # Nombre de ticks pour un cycle
+force_musc = np.zeros((n,ticks,2))
+mask = np.zeros((n, ticks), dtype=bool) # On prépare un masque
+for i in range(n):
+    n_movements = np.random.randint(MIN_N_MOVEMENTS, MAX_N_MOVEMENTS) # Nombre de mouvements dans un cycle pour le noeud i
+    mask[i, np.random.choice(ticks, size=n_movements, replace=False)] = True
+force_musc[mask] = MIN_FORCE_MUSC + (MAX_FORCE_MUSC - MIN_FORCE_MUSC) * np.random.random((mask.sum(),2))
+creature_test.append(force_musc)
+
+creature_test_heritee = adn_suppression_segment(creature_test)
+
+
+def afficher_creature(ax, positions, connections, color='b', title=""):
+    """Affiche une créature sur un axe donné."""
+    n = len(positions)
+    for i in range(n):
+        x, y = positions[i]
+        ax.plot(x, y, f'{color}o')  # Noeud
+        ax.text(x + 2, y + 2, str(i), fontsize=8, color=color)
+        for j in range(i+1, n):
+            if connections[i][j] != 0:
+                x2, y2 = positions[j]
+                ax.plot([x, x2], [y, y2], f'{color}-')
+    ax.set_title(title)
+    ax.axis('equal')
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.grid(True)
 
 
 
