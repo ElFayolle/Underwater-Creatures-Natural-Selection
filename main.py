@@ -1,10 +1,11 @@
 import pygame
 import numpy as np
+import json
 
 pygame.init()
 # Set up the display
 WIDTH, HEIGHT = 800, 600
-DUREE_SIM = 1  # Durée de la simulation en secondes
+DUREE_SIM = 10  # Durée de la simulation en secondes
 CURRENT_CREATURE = 0
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Natural Selection Simulation")
@@ -226,7 +227,7 @@ def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
         #force de rappel en chacun des sommets
         f_rap[:,t] = force_rappel_amortie(xy, v, l0, t-1) 
         #Array rassemblant les différentes forces
-        print(f_rap[0,t],f_eau[0,t],f_musc[0,t])
+        #print(f_rap[0,t],f_eau[0,t],f_musc[0,t])
         liste_forces = np.array([f_rap, f_eau,f_musc])
         
         #Somme des forces et calcul du PFD au temps t
@@ -239,14 +240,15 @@ def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
     #Calcul de l'énergie cinétique et de la distance parcourue
     energie = energie_cinetique(v, n_interval_time-1)
     distance_parcourue = distance(xy, n_interval_time-1)
-    score = score(energie, distance_parcourue, n_nodes)
+    score = calcul_score(energie, distance_parcourue, n_nodes)
     return (v, xy, score)
 
 
 
-#Fonction qui calcule le "score" de chaque créature - amené à changer.
-def score(energie, distance, taille):
-    score = 2/3*distance/max(distance) + 1/3* energie/taille * max(taille/energie)
+#Fonction qui calcule le "score" de chaque créature - A CHANGER.
+def calcul_score(energie, distance, taille):
+    score = 2/3 * distance + 1/3 * taille / energie
+    return 2/3*distance
 
 def iter_score(position, vitesse): # Calcule les grandeurs liées au score d'UNE créature
     masse = len(position)   # masse et taille sont identiques ici
@@ -398,10 +400,12 @@ pos  = calcul_position(meduse)[1]
 pos2 = calcul_position(med2)[1]
 t = 0
 
+"""with open("creature_gagnante.json", "r", encoding="utf-8") as f:
+    pos = np.array(json.load(f)[1])"""
 
 #Test bulles
 bubbles = instantiate_bubbles(30)
-position_tot=np.array([pos,pos2])
+position_tot=np.array([pos])
 
 while running and t < DUREE_SIM/(1/60):
     for event in pygame.event.get():

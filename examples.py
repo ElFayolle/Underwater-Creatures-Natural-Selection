@@ -6,7 +6,7 @@ import json
 
 
 LENGTH = 70
-NOMBRE_DE_CREATURES = 5
+NOMBRE_DE_CREATURES = 50
 
 def point_exists(new_pos, positions, tol=1e-6):
     """Fonction qui vérifie si le point new_pos recouvre un point déjà existant (vrai si recouvrement)"""
@@ -160,10 +160,10 @@ for i in range(NOMBRE_DE_CREATURES):
 
 MIN_TICKS = 50
 MAX_TICKS = 60
-MIN_N_MOVEMENTS = 3
-MAX_N_MOVEMENTS = 6
-MIN_FORCE_MUSC = 0.1
-MAX_FORCE_MUSC = 0.5
+MIN_N_MOVEMENTS = 20
+MAX_N_MOVEMENTS = 30
+MIN_FORCE_MUSC = -1000
+MAX_FORCE_MUSC = 1000
 
 def adn_longueur_segment(creature):
     """Modifie la longueur d'un segment (entre deux points connectés) de la créature.
