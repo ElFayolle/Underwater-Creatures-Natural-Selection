@@ -235,7 +235,12 @@ def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
         #Calcul de la vitesse et position au temps t
         v[:, t] = v[:, t-1] + dt * a[:, t-1]
         xy[:, t] = xy[:, t-1] + dt * v[:, t-1]
-    return (v, xy)
+    
+    #Calcul de l'énergie cinétique et de la distance parcourue
+    energie = energie_cinetique(v, n_interval_time-1)
+    distance_parcourue = distance(xy, n_interval_time-1)
+    score = score(energie, distance_parcourue, n_nodes)
+    return (v, xy, score)
 
 
 
