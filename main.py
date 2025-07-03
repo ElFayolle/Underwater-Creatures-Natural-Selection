@@ -100,6 +100,18 @@ def nombre_de_voisins(k, i, creatures):
 
     return F_visq"""
 
+def frottement_eau_3(vitesse:np.ndarray,neighbours:np.ndarray,position:np.ndarray,t,alpha:float = 1):
+    l=len(position)
+    F_visq = np.zeros((l,2))
+    v_moy = vitesse_moyenne(vitesse,t)
+
+    norm_locales = somme_normales_locales(position,neighbours,t)
+    for node, normale in enumerate(norm_locales):
+        if np.linalg.norm(normale) > 1e-10:
+            F_visq[node] = -alpha*(vitesse[node,t]-v_moy)*np.dot((vitesse[node,t]-v_moy),normale)
+            #print(f"à l'aide: {norm_locales},{vitesse[node,t]},{v_moy},{F_visq}")
+    return F_visq    
+
 def frottement_eau_globale(vitesse:np.ndarray,neighbours:np.ndarray,position:np.ndarray,t,alpha:float = 1):
     l=len(position)
     F_visq = np.zeros((l,2))
@@ -238,16 +250,22 @@ def force_musc_projetee(position,neighbours,f_musc,t):
         if np.linalg.norm(norm_locales[i]) < eps:
             f_musc_proj[i] = np.array([0, 0])  # Si la normale est nulle, pas de force projetée
         else:
-            f_musc_proj[i] = np.dot(f_musc_t[i], norm_locales[i]) * norm_locales[i] / (np.linalg.norm(norm_locales[i])**2)
+            f_musc_proj[i] = np.dot(f_musc_t[i], norm_locales[i]) * norm_locales[i] 
     return f_musc_proj
 
 
 def somme_normales_locales(position,neighbours,t):
     dico_normales = normales_locales(position, neighbours, t)
     normales_totales = np.zeros((len(position), 2))
+    eps=1e-10
     for couple, normale in dico_normales.items():
         normales_totales[couple[0]] += normale
         normales_totales[couple[1]] += normale
+    for i,normale in enumerate(normales_totales):
+        if np.linalg.norm(normale)>eps:
+            normales_totales[i] = normale/np.linalg.norm(normale)
+        else:
+            normales_totales[i] = np.array([0,0])
     return normales_totales
 
 def normales_locales(position,neighbours,t)->dict:
@@ -385,13 +403,13 @@ def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
     for t in range(1,int(n_interval_time)):
 
         #calcul de la force de frottement liée à l'eau
-        f_eau[:,t] = frottement_eau_globale(v,matrice_adjacence,xy,t-1,10)
+        f_eau[:,t] = frottement_eau_3(v,matrice_adjacence,xy,t-1,10)
 
         #force de rappel en chacun des sommets
         f_rap[:,t] = force_rappel_amortie(xy, v, l0, t-1)
 
         f_musc_proj[:,t] = force_musc_projetee(xy, matrice_adjacence, f_musc, t-1) 
-        force_reaction[:,t] = action_reaction(f_musc[:,t], xy[:,t], l0)  
+        #force_reaction[:,t] = action_reaction(f_musc[:,t], xy[:,t], l0)  
         #print(np.shape(f_rap))
         #print(np.shape(force_reaction)) 
         #Array rassemblant les différentes forces
@@ -573,8 +591,8 @@ pos2 = calcul_position(med2)[1]
 pos3 = calcul_position(baton)[1]
 t = 0
 
-with open("creature_gagnante.json", "r", encoding="utf-8") as f:
-    pos = np.array(json.load(f)[1])
+#with open("creature_gagnante.json", "r", encoding="utf-8") as f:
+    #pos = np.array(json.load(f)[1])
 
 #Test bulles
 bubbles = instantiate_bubbles(30)
