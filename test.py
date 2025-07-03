@@ -1,11 +1,10 @@
 import pygame
 import numpy as np
-import json
 
 pygame.init()
 # Set up the display
 WIDTH, HEIGHT = 800, 600
-DUREE_SIM = 10  # Durée de la simulation en secondes
+DUREE_SIM = 30  # Durée de la simulation en secondes
 CURRENT_CREATURE = 0
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Natural Selection Simulation")
@@ -50,82 +49,27 @@ def nombre_de_voisins(k, i, creatures):
             nb += 1
     return nb
 
-"""def frottement_eau(vitesse:np.ndarray,neighbours:np.ndarray,position:np.ndarray,t,alpha:float = 1):  #UNE créature, UNE vitesse associée. Shapes = [N_noeuds,N_t,2]
-    #Retourne les forces appliquées à chaque sommet i d'une créature dû à l'eau (NON)
+def frottement_eau(vitesse:np.ndarray,neighbours:np.ndarray,position:np.ndarray,t,alpha:float = 1):  #UNE créature, UNE vitesse associée. Shapes = [N_noeuds,N_t,2]
+    """Retourne les forces appliquées à chaque sommet i d'une créature dû à l'eau"""
     l=len(position)
     F_visq = np.zeros((l,2))
     v_moy = vitesse_moyenne(vitesse,t)
-    
-
-    for i in range(l):
+    for i in range(l-1):
         for index, voisin in enumerate(neighbours[i]):
             if voisin!=0:
-                BA = -position[index,t]+position[i,t] # Vecteur BA avec A le premier sommet 
-                norm = np.linalg.norm(BA)
-                if norm<1e-12:
-                    F_visq[i] = np.array([0,0])
-                else:
-                    cos_theta = np.dot(BA,np.array([1,0]))/np.linalg.norm(BA)
-                    sin_theta = np.dot(BA,np.array([0,1]))/np.linalg.norm(BA)
-                    u_theta = +cos_theta*np.array([0,1]) - sin_theta*np.array([1,0])
-                    v_orad_bout = (np.dot(vitesse[i,t]-v_moy,u_theta))*u_theta                  # Vitesse ortho_radiale du bout du segment
-                    F_visq[i] =   - alpha*(np.linalg.norm(v_orad_bout)/4)*v_orad_bout           # Force du point à r/2
+                BA = -position[i+1,t-1]+position[i,t-1] # Vecteur BA avec A le premier sommet 
+                cos_theta = np.dot(BA,np.array([1,0]))/np.linalg.norm(BA)
+                sin_theta = np.dot(BA,np.array([0,1]))/np.linalg.norm(BA)
+                u_theta = +cos_theta*np.array([0,1]) - sin_theta*np.array([1,0])
+                v_orad_bout = (np.dot(vitesse[i,t-1]-v_moy,u_theta))*u_theta   # Vitesse ortho_radiale du bout du segment
+                F_visq[i] =  - alpha*(np.linalg.norm(v_orad_bout)/4)*v_orad_bout                        # Force du point à r/2
 
-    return F_visq"""
+    # Le dernier sommet correspond à inverser le calcul: on regarde l'angle de l'autre bout du bras donc on "déphase" de pi, cos= -cos, sin = -sin
 
-"""def frottement_eau_2(vitesse:np.ndarray,neighbours:np.ndarray,position:np.ndarray,t,alpha:float = 1):
-    ""ça ne marche pas a l'aide bordel""
-    l=len(position)
-    F_visq = np.zeros((l,2))
-    v_moy = vitesse_moyenne(vitesse,t)
-
-    for i,_ in enumerate(position[:,t]):
-        voisins = [index for index, e in enumerate(neighbours[i]) if e != 0]
-        section_efficace = np.zeros((l))
-        for index in voisins:
-            BA = -position[index,t]+position[i,t] # Vecteur BA avec A le premier sommet 
-            norm = np.linalg.norm(BA)
-            v_reel = (vitesse[i,t]-v_moy)
-            if np.linalg.norm(v_reel) >1e-12:
-                v_unitaire = v_reel/np.linalg.norm(v_reel)
-                if norm>1e-12:
-                # Coordonnées locales 
-                    cos_theta = np.dot(BA,np.array([1,0]))/np.linalg.norm(BA)
-                    sin_theta = np.dot(BA,np.array([0,1]))/np.linalg.norm(BA)
-                    normale_locale = +cos_theta*np.array([0,1]) - sin_theta*np.array([1,0])
-                    # print(f"{index},vun:{v_unitaire},vre:{v_reel,norm}")
-                    section_efficace[index] = (norm*np.abs(np.dot(v_unitaire,normale_locale)))
-                    if np.sum(section_efficace)>1e-12:
-                        F_visq[index] += -alpha*v_reel*np.linalg.norm(v_reel)*section_efficace[index]/np.sum(section_efficace)    
-
-    return F_visq"""
-
-def frottement_eau_globale(vitesse:np.ndarray,neighbours:np.ndarray,position:np.ndarray,t,alpha:float = 1):
-    l=len(position)
-    F_visq = np.zeros((l,2))
-    v_moy = vitesse_moyenne(vitesse,t)
-
-    for i,_ in enumerate(position[:,t]):
-        voisins = [index for index, e in enumerate(neighbours[i]) if e != 0]
-        section_efficace = np.zeros((l))
-        for index in voisins:
-            BA = -position[index,t]+position[i,t] # Vecteur BA avec A le premier sommet 
-            norm = np.linalg.norm(BA)
-            if np.linalg.norm(v_moy) >1e-6:
-                v_unitaire = v_moy/np.linalg.norm(v_moy)
-                if norm>1e-6:
-                # Coordonnées locales 
-                    cos_theta = np.dot(BA,np.array([1,0]))/np.linalg.norm(BA)
-                    sin_theta = np.dot(BA,np.array([0,1]))/np.linalg.norm(BA)
-                    normale_locale = +cos_theta*np.array([0,1]) - sin_theta*np.array([1,0])
-                    # print(f"{index},vun:{v_unitaire},vre:{v_reel,norm}")
-                    section_efficace[index] = (norm*np.abs(np.dot(v_unitaire,normale_locale)))
-                
-                    if np.sum(section_efficace)>1e-6:
-                        F_visq[index] += -alpha*v_moy*np.linalg.norm(v_moy)*section_efficace[index]/np.sum(section_efficace)   
-                        #print("prour")
-                        #print(F_visq[index],np.sum(section_efficace),section_efficace[index],norm,cos_theta) 
-
+    u_theta = -u_theta
+    v_orad_bout = (np.dot(vitesse[l-1,t-1]-v_moy,u_theta))*u_theta   
+    F_visq[l-1] =  - alpha*(np.linalg.norm(v_orad_bout)/4)*v_orad_bout
+    
     return F_visq
 
 def force_rappel_amortie(positions, vitesses, l0, t, k=10e-3, c=10):
@@ -154,19 +98,25 @@ def force_rappel_amortie(positions, vitesses, l0, t, k=10e-3, c=10):
     F_total[l0 == 0] = 0.0
     return F_total.sum(axis=0)
 
-
-def action_reaction(force_musc, pos, l0):
+def contrainte_longueurs(xy_t, l0, matrice_adjacence):
     """
-
+    Ajuste xy_t (positions au temps t) pour que la distance entre chaque paire de noeuds connectés soit égale à l0.
+    Utilise une correction simple itérative.
     """
-    force_reaction = np.zeros((len(pos), 2))  # Initialisation des forces de réaction
-    for i in range(len(pos)):
-        for j in range(len(pos)):
-            if l0[i, j] > 0:
-                # Calcul de la force de réaction selon le principe d'action-réaction
-                force_reaction[i] += -force_musc[j]
-    return force_reaction
-
+    n = len(xy_t)
+    for _ in range(5):  # nombre d'itérations de correction (à ajuster)
+        for i in range(n):
+            for j in range(i+1, n):
+                if matrice_adjacence[i, j] != 0:
+                    vec = xy_t[j] - xy_t[i]
+                    dist = np.linalg.norm(vec)
+                    if dist == 0:
+                        continue
+                    diff = dist - l0[i, j]
+                    correction = (diff / 2) * (vec / dist)
+                    xy_t[i] += correction
+                    xy_t[j] -= correction
+    return xy_t
 
 """
 
@@ -205,72 +155,6 @@ def force_rappel(positions,l0,t):  #Renvoie la force de rappel totale qui s'appl
 
 """
 
-def force_musc_projetee_copilot(position,neighbours,f_musc,t):
-    """
-    Calcule la force musculaire projetée sur les normales aux segments des créatures
-    position: (n_nodes, n_interval_time, 2) # Positions des noeuds
-    neighbours: (n_nodes, n_nodes) # Matrice d'adjacence des voisins
-    f_musc: (n_nodes, n_interval_time, 2) # Forces musculaires
-    t: int # Temps
-    retourne : forces musculaires projetées sur les normales aux segments, shape (n_nodes, 2)
-    """
-    l = len(position)
-    f_musc_proj = np.zeros((l, 2))
-    for i in range(l):
-        voisins = [index for index, e in enumerate(neighbours[i]) if e != 0]
-        for index in voisins:
-            BA = -position[index, t] + position[i, t]  # Vecteur BA avec A le premier sommet
-            norm = np.linalg.norm(BA)
-            if norm > 1e-6:  # Si le segment est minuscule, pas de force
-                cos_theta = np.dot(BA, np.array([1, 0])) / np.linalg.norm(BA)
-                sin_theta = np.dot(BA, np.array([0, 1])) / np.linalg.norm(BA)
-                u_theta = +cos_theta * np.array([0, 1]) - sin_theta * np.array([1, 0])
-                f_musc_proj[i] += f_musc[index, t] * np.dot(f_musc[index, t], u_theta) * u_theta
-    return f_musc_proj
-
-def force_musc_projetee(position,neighbours,f_musc,t):
-    eps = 1e-10
-    n_nodes = len(position)
-    norm_locales = somme_normales_locales(position,neighbours,t)
-    f_musc_t = f_musc[:, t]  # Forces musculaires au temps t
-    f_musc_proj = np.zeros((n_nodes, 2))
-    for i in range(n_nodes):
-        if np.linalg.norm(norm_locales[i]) < eps:
-            f_musc_proj[i] = np.array([0, 0])  # Si la normale est nulle, pas de force projetée
-        else:
-            f_musc_proj[i] = np.dot(f_musc_t[i], norm_locales[i]) * norm_locales[i] / (np.linalg.norm(norm_locales[i])**2)
-    return f_musc_proj
-
-
-def somme_normales_locales(position,neighbours,t):
-    dico_normales = normales_locales(position, neighbours, t)
-    normales_totales = np.zeros((len(position), 2))
-    for couple, normale in dico_normales.items():
-        normales_totales[couple[0]] += normale
-        normales_totales[couple[1]] += normale
-    return normales_totales
-
-def normales_locales(position,neighbours,t)->dict:
-    d = {}
-    for i in range(len(position)):
-        voisins = [index for index, e in enumerate(neighbours[i],start=0) if e != 0]
-        for index in voisins:
-            if ((index,i) in d) ^ ((i,index) not in d): 
-                BA = -position[index,t]+position[i,t] # Vecteur BA avec A le premier sommet 
-                norm = np.linalg.norm(BA)
-                if norm>1e-6:
-                # Coordonnées locales 
-                    cos_theta = np.dot(BA,np.array([1,0]))/np.linalg.norm(BA)
-                    sin_theta = np.dot(BA,np.array([0,1]))/np.linalg.norm(BA)
-                    normale_locale = +cos_theta*np.array([0,1]) - sin_theta*np.array([1,0])
-                    d[(index,i)] = normale_locale
-    return d
-
-pos = np.array([[[100,100]], [[150,150]], [[200,100]]])
-pos2 = np.array([[150,300], [500,300], [600,400]])
-matrice_adjacence = np.array([[0,1,0], [1,0,1], [0,1,0]])
-print("normales",normales_locales(pos, matrice_adjacence, 0))  # Affiche les normales locales pour les positions et la matrice d'adjacence données
-print("somme_normales", somme_normales_locales(pos, matrice_adjacence, 0))  # Affiche la somme des normales locales
 
 
 def pfd(liste_force, t, mass=1):
@@ -288,11 +172,11 @@ def vitesse_moyenne(vitesse, t):
     t: float
     retourne : moyenne des vitesses sur le temps t
     """
-    vitesse_moy = np.mean(vitesse[:, t], axis=0)  # liste de 2 éléments : v_moy_x, v_moy_y
+    vitesse_moy = np.sum(vitesse[:, t], axis=0)  # liste de 2 éléments : v_moy_x, v_moy_y
     return vitesse_moy
 
 vit = np.array([[[4,8],[2,3]],[[1,2],[3,4]],[[0,0],[1,1]]])  # Exemple de vitesses pour 3 noeuds et 2 temps
-#print("vitesse",vitesse_moyenne(vit, 1))  # Affiche la vitesse moyenne au temps t=1
+print("vitesse",vitesse_moyenne(vit, 1))  # Affiche la vitesse moyenne au temps t=1
 
 def energie_cinetique(vitesse, t, masse = 1):
     """
@@ -303,7 +187,7 @@ def energie_cinetique(vitesse, t, masse = 1):
     energie = 0.5 * masse * np.sum(vitesse_norm**2)  # somme des énergies cinétiques
     return energie
 
-#print("Energie cinétique", energie_cinetique(vit, 1))  # Affiche l'énergie cinétique pour les vitesses données
+print("Energie cinétique", energie_cinetique(vit, 1))  # Affiche l'énergie cinétique pour les vitesses données
 
 
 def distance(position,t):
@@ -313,41 +197,54 @@ def distance(position,t):
 
 
 
-"""def f_musc_cohérente(neighbours,position,f_musc,t):
-    l=len(position)
-    f_correction = np.zeros((l,2))
-    u_thetas = np.zeros((l,2))
-    for i in range(l):
-        for index,voisin in enumerate(neighbours[i]):
-            if voisin!=0:
-                BA = -position[i,t]+position[index,t]
-                norm = np.linalg.norm(BA)
-                if norm>1e-12:  #Si le segment est minuscule, pas de force
-                    cos_theta = np.dot(BA,np.array([1,0]))/norm
-                    sin_theta = np.dot(BA,np.array([0,1]))/norm
-                    u_theta = +cos_theta*np.array([0,1]) - sin_theta*np.array([1,0])
-                    u_thetas.append([i,index,BA,u_theta]))
+def action_reaction(force_musc, pos, l0):
+    """
+
+    """
+    force_reaction = np.zeros((len(pos), 2))  # Initialisation des forces de réaction
+    for i in range(len(pos)):
+        for j in range(len(pos)):
+            if l0[i, j] > 0:
+                # Calcul de la force de réaction selon le principe d'action-réaction
+                force_reaction[i] += -force_musc[j]
+    return force_reaction
 
 
+def orthogonalise_force(force_musc, pos, l0):
+    """
+    Force musculaire orthogonalisée pour chaque noeud d'une créature.
+    force_musc: (n_nodes, n_interval_time, 2)
+    pos: (n_nodes, n_interval_time, 2)
+    l0: (n_nodes, n_nodes)
+    retourne : force_musc orthogonalisée
+    """
+    n_nodes = len(pos)
+    force_orthogonalisee = np.zeros(force_musc.shape, dtype=np.float64) 
+    for i in range(n_nodes):
+        for j in range(n_nodes):
+            if l0[i, j] > 0:
+                # Calcul de la force orthogonale
+                vec = pos[j] - pos[i]
+                print(vec)
+                vec_orth = np.array([-vec[1], vec[0]])  # Vecteur orthogonal
+                norm_vec = np.linalg.norm(vec_orth) + 1e-12  # Éviter division par zéro
+                unit_vec = vec_orth / norm_vec
+                force_orthogonalisee[j] += np.dot(force_musc[j], unit_vec) * unit_vec
 
-    return f_correction
+    return force_orthogonalisee
 
-def f_réaction(neighbours,position,f_musc,t):
-    l=len(position)
-    for i in range(l):
-        n_vois=np.count_nonzero(neighbours[i])
-"""
-
-
-
-
+print(orthogonalise_force(np.array([[0,0],[1,2]]), np.array([[0,0], [0,2]]), np.array([[0,1],[1,0]])))  # Exemple de force musculaire orthogonalisée pour 2 noeuds
 #calcul_position(np.Array()#cycle de forces de la créature, float #pas de temps, float #temps de simul, int #nombre de noeuds) -> vitesse et position 
 def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
 
+
+
+    import time
+
+    time.sleep(12)
     pos_init, matrice_adjacence, f_musc_periode = creature[0], creature[1], creature[2]
     n_nodes = len(pos_init)  # Nombre de noeuds dans la créature
     l0 = neighbors(pos_init, matrice_adjacence)
-
     #pos = [[100,100], [100,300]] #test pos initial pour 2 noeuds
     #neigh = [[0,200], [200,0]]   
 
@@ -368,8 +265,6 @@ def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
     #force de l'eau sur chaque sommet
     f_eau = np.zeros((n_nodes, n_interval_time, 2))  #shape = (N_noeuds, N_t, 2)
 
-    f_musc_proj = np.zeros((n_nodes, n_interval_time, 2)) #shape = (N_noeuds, N_t, 2)
-
     #force de viscosité
     #f_visc = np.zeros((n_nodes, n_interval_time, 2)) #shape = (N_noeuds, N_t, 2)
 
@@ -383,20 +278,16 @@ def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
     gamma = 1200
     #Calcul itératif des forces/vitesses et positions
     for t in range(1,int(n_interval_time)):
-
         #calcul de la force de frottement liée à l'eau
-        f_eau[:,t] = frottement_eau_globale(v,matrice_adjacence,xy,t-1,10)
-
+        f_eau[:,t] = frottement_eau(v,matrice_adjacence,xy,t)
+        #f_visc[:,t] = -gamma*v[:,t]
         #force de rappel en chacun des sommets
-        f_rap[:,t] = force_rappel_amortie(xy, v, l0, t-1)
-
-        f_musc_proj[:,t] = force_musc_projetee(xy, matrice_adjacence, f_musc, t-1) 
-        force_reaction[:,t] = action_reaction(f_musc[:,t], xy[:,t], l0)  
-        #print(np.shape(f_rap))
-        #print(np.shape(force_reaction)) 
+        f_rap[:,t] = force_rappel_amortie(xy, v, l0, t-1) 
+        force_reaction[:,t] = action_reaction(f_musc[:,t], xy[:,t], l0)   
         #Array rassemblant les différentes forces
-        #print(np.linalg.norm(f_eau[:,t]),np.linalg.norm(f_rap[:,t]))
-        liste_forces = np.array([f_rap, f_eau,f_musc_proj, force_reaction])  # Liste des forces appliquées à chaque noeud
+        
+        f_musc[:,t] = orthogonalise_force(f_musc[:,t], xy[:,t], l0)
+        liste_forces = np.array([f_rap, force_reaction,f_musc])
         
         #Somme des forces et calcul du PFD au temps t
         a[:,t] = pfd(liste_forces, t)
@@ -404,21 +295,12 @@ def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
         #Calcul de la vitesse et position au temps t
         v[:, t] = v[:, t-1] + dt * a[:, t-1]
         xy[:, t] = xy[:, t-1] + dt * v[:, t-1]
-        #if t >= 2:
-        #    xy[:, t] = 2*xy[:, t-1] - xy[:, t-2] + dt**2 * a[:, t-1]  # Méthode de Verlet pour la position
-    
-    #Calcul de l'énergie cinétique et de la distance parcourue
-    energie = energie_cinetique(v, n_interval_time-1)
-    distance_parcourue = distance(xy, n_interval_time-1)
-    score = calcul_score(energie, distance_parcourue, n_nodes)
-    return (v, xy, score)
+    return (v, xy)
 
 
-
-#Fonction qui calcule le "score" de chaque créature - A CHANGER.
-def calcul_score(energie, distance, taille):
-    score = 2/3 * distance + 1/3 * taille / energie
-    return 2/3*distance
+#Fonction qui calcule le "score" de chaque créature - amené à changer.
+def score(energie, distance, taille):
+    score = 2/3*distance/max(distance) + 1/3* energie/taille * max(taille/energie)
 
 def iter_score(position, vitesse): # Calcule les grandeurs liées au score d'UNE créature
     masse = len(position)   # masse et taille sont identiques ici
@@ -426,9 +308,9 @@ def iter_score(position, vitesse): # Calcule les grandeurs liées au score d'UNE
     distance = np.linalg.norm(centre_de_masse(position,0) - centre_de_masse(position,-1))
     return energie,distance,masse #return energie distance taille
 
-def selection(score_total:np.ndarray,force_total,N_selected):
-    sorted = np.sort(score_total)
-    return sorted
+def selection(score_total:np.ndarray,force_total,):
+
+    return None
 
 
 def check_line_cross(position:np.ndarray,t)->np.ndarray: # Fonction naïve pour empêcher les croisements de segments
@@ -480,9 +362,11 @@ def check_line_cross(position:np.ndarray,t)->np.ndarray: # Fonction naïve pour 
 def see_creatures(event:pygame.event):
     global CURRENT_CREATURE
     if event.key == pygame.K_LEFT:
-        CURRENT_CREATURE = (CURRENT_CREATURE - 1)%(len(position_tot))
+            if CURRENT_CREATURE!=0:
+                CURRENT_CREATURE-=1
     if event.key == pygame.K_RIGHT:
-        CURRENT_CREATURE = (CURRENT_CREATURE + 1)%(len(position_tot))
+            if CURRENT_CREATURE<len(position_tot)-1:
+                CURRENT_CREATURE+=1
     return None
 
 def draw_creature(pos,t, offset):
@@ -545,15 +429,14 @@ med2 = [pos3, matrice_adjacence]
 
 
 
-# test de forces aléatoires
+#test de forces aléatoires
 
 #force_initial = [[[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]] , 
               #   [[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0][0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]], 
                #   [[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15][0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]]]
                  #
 
-force_initial = ([[[0,+150]], [[0,0]], [[0,+150]]])
-force_initial2 = ([[[0,-15,]],[[0,0]]])
+force_initial = ([[[0,0]], [[0,-15]], [[0,0]]])
 
 
 meduse = [pos, matrice_adjacence,force_initial]
@@ -562,23 +445,20 @@ med2 = [pos3, matrice_adjacence, force_initial]
 """
 Test simple - le baton
 """
-pos3 = np.array([[300,100], [250,150]])
-matrice_adjacence3 = np.array([[0,1], [1,0]])
-baton = [pos3, matrice_adjacence3, force_initial2]
+#pos = np.array([[100,100], [150,150]])
+#matrice_adjacence = np.array([[0,1], [1,0]])
+baton = [pos, matrice_adjacence, force_initial]
 
 
 forces = []
 pos  = calcul_position(meduse)[1]
 pos2 = calcul_position(med2)[1]
-pos3 = calcul_position(baton)[1]
 t = 0
 
-with open("creature_gagnante.json", "r", encoding="utf-8") as f:
-    pos = np.array(json.load(f)[1])
 
 #Test bulles
 bubbles = instantiate_bubbles(30)
-position_tot={0:pos,1:pos2,2:pos3}
+position_tot=np.array([pos,pos2])
 
 while running and t < DUREE_SIM/(1/60):
     for event in pygame.event.get():
@@ -594,9 +474,8 @@ while running and t < DUREE_SIM/(1/60):
     draw_bubbles(bubbles,offset,barycentre,0,t)
     draw_creature(pos,t, offset)
     draw_creature(pos2,t,offset)
-    draw_creature(pos3,t,offset)
     font=pygame.font.Font(None, 24)
-    text = font.render("N° : " + str(CURRENT_CREATURE)+" distance : " + str(distance(position_tot[CURRENT_CREATURE],t)) ,1,(255,255,255))
+    text = font.render("distance : " + str(distance(pos,t)),1,(255,255,255))
     screen.blit(text, (10, 10))
     
     pygame.display.flip()
