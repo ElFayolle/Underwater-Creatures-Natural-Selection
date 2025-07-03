@@ -61,8 +61,12 @@ pos, liste_forces  = calcul_position(meduse)[1], calcul_position(meduse)[2]
 # pos3 = calcul_position(baton)[1]
 t = 0
 
-"""with open("meilleures_creatures_1.json", "r", encoding="utf-8") as f:
-    pos = np.array(json.load(f)[0][1][0])"""
+def visualisation_creature(i_generation,i_creature=0):
+    with open(f"meilleures_creatures_{i_generation}.json", "r", encoding="utf-8") as f:
+        creature = json.load(f)[i_creature][1:]  # de la forme [position,matrice_adjacence,forces] 
+    pos = calcul_position([np.array(element) for element in creature])[1]
+    return pos
+pos = visualisation_creature(1)  # Visualiser la première créature de la première génération
 
 #Test bulles
 bubbles = instantiate_bubbles(30)

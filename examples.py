@@ -6,7 +6,7 @@ import json
 
 
 LENGTH = 70
-NOMBRE_DE_CREATURES = 30
+NOMBRE_DE_CREATURES = 100
 
 def calcul_distance(point1, point2):
     x1, y1, x2, y2 = point1[0], point1[1], point2[0], point2[1]
@@ -411,9 +411,9 @@ def afficher_deux_creatures_sur_meme_graphe(ax, positions1, connections1, positi
     ax.grid(True)
 
 # Affichage matplotlib
-fig, ax = plt.subplots(figsize=(8, 8))
-afficher_deux_creatures_sur_meme_graphe(ax, creature_test[0], creature_test[1], creature_test_heritee[0], creature_test_heritee[1])
-plt.show()
+# fig, ax = plt.subplots(figsize=(8, 8))
+# afficher_deux_creatures_sur_meme_graphe(ax, creature_test[0], creature_test[1], creature_test_heritee[0], creature_test_heritee[1])
+# plt.show()
 
 
 def afficher_creature(ax, positions, connections, color='b', title=""):

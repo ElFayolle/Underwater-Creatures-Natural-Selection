@@ -220,4 +220,4 @@ def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
     
     score = calcul_score(energie_cinetique(v, n_interval_time-1), distance(xy, n_interval_time-1), n_nodes)
 
-    return (v, xy.tolist(), liste_forces, score)
+    return (v, xy, liste_forces, score)
