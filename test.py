@@ -81,6 +81,8 @@ while running and t < DUREE_SIM/(1/60):
     draw_bubbles(bubbles,offset,barycentre,0,t)
     draw_creature(pos, force,t, offset)
     #draw_creature(pos2,t,offset)
+
+
     font=pygame.font.Font(None, 24)
     text = font.render("distance : " + str(distance(pos,t)),1,(255,255,255))
     coulours_force = [(255,0,0),(0,255,0),(0,0,255)]

@@ -56,10 +56,9 @@ baton = [pos3, matrice_adjacence3, force_initial2]
 
 
 forces = []
-
-pos,v,liste_forces  = calcul_position(meduse)
-pos2,v2,liste_forces2 = calcul_position(med2)
-pos3,v3,liste_forces3 = calcul_position(baton)
+pos, liste_forces  = calcul_position(meduse)[1], calcul_position(meduse)[2]
+# pos2 = calcul_position(med2)[1]
+# pos3 = calcul_position(baton)[1]
 t = 0
 
 #with open("creature_gagnante.json", "r", encoding="utf-8") as f:
@@ -74,16 +73,16 @@ while running and t < DUREE_SIM/(1/60):
         if event.type == pygame.QUIT:
             running = False
         if event.type == pygame.KEYDOWN:
-            see_creatures(position_tot,event)
+            see_creatures(position_tot, event)
             
 
     screen.fill((0, 35, 120))
     barycentre = centre_de_masse(position_tot[CURRENT_CREATURE], t)
     offset = get_offset(centre_de_masse(position_tot[CURRENT_CREATURE], t), WIDTH,HEIGHT)
     draw_bubbles(screen,bubbles,offset,barycentre,0,t)
-    draw_creature(screen,pos,liste_forces,t,offset)
-    draw_creature(screen,pos2,liste_forces2,t,offset)
-    draw_creature(screen,pos3,liste_forces3,t,offset)
+    draw_creature(screen,pos, liste_forces,t, offset)
+    # draw_creature(screen,pos2,t,offset)
+    # draw_creature(screen,pos3,t,offset)
     font=pygame.font.Font(None, 24)
     text = font.render("N° : " + str(CURRENT_CREATURE)+" distance : " + str(distance(position_tot[CURRENT_CREATURE],t)) ,1,(255,255,255))
     screen.blit(text, (10, 10))
