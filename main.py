@@ -20,7 +20,7 @@ accelerations = []
 """
 Test créature - la Méduse :
 """
-pos = np.array([[200,100], [200,200], [100,200]])
+pos = np.array([[100,100], [150,150], [200,100]])
 pos2 = np.array([[150,300], [500,300], [600,400]])
 pos3 = np.array([[120,120], [150,150], [170,120]]) + np.array([[300, 0], [300, 0], [300, 0]]) # Créature décalée pour le test
 matrice_adjacence = np.array([[0,1,0], [1,0,1], [0,1,0]])
@@ -34,11 +34,194 @@ force_initial = [[[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15]
                  [[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]]]
                  #
 
+forces_méduses_cycliques = [[
+[0, 100],
+[0, 10],
+[0, 10],
+[0, 10],
+[0, 10],
+[0, 10],
+[0, 10],
+[0, 10],
+[0, 10],
+[0, 10],
+[0, 10],
+[0, 10],
+[0, 10],
+[0, 10],
+[0, 10],
+[0, 10],
+[0, 10],
+[0, 10],
+[0, 10],
+[0, 10],
+[0, 10],
+[0, 10],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, -100],
+[0, -100],
+[0, -100],
+[0, -100],
+[0, -100],
+[0, -100],
+[0, -100]],[
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0]],
+
+[
+[0, 10],
+[0, 10],
+[0, 10],
+[0, 10],
+[0, 10],
+[0, 10],
+[0, 10],
+[0, 10],
+[0, 10],
+[0, 10],
+[0, 10],
+[0, 10],
+[0, 10],
+[0, 10],
+[0, 10],
+[0, 10],
+[0, 10],
+[0, 10],
+[0, 10],
+[0, 10],
+[0, 10],
+[0, 10],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, 0],
+[0, -100],
+[0, -100],
+[0, -100],
+[0, -100],
+[0, -100],
+[0, -100],
+[0, -100]]
+]
+
+force_musc_periode_tst = np.array([[[0,1000*(1-np.exp(-t/100)-np.exp(-5)*100)] for t in range(500)] for c in range (3)])
+force_musc_periode_tst[1,:,:] = 0
+
+force_musc_periode2 = np.array([[[1000*(1-np.exp(-((t+250)%500)/100)-np.exp(-5)*100),1000*(1-np.exp(-(t%500)/100)-np.exp(-5)*100)] for t in range(500)] for c in range (3)])
+force_musc_periode2[1,:,:] = 0
+force_musc_periode2[2,:,0] *= -1
+
 #force_initial = ([[[0,+150]], [[0,0]], [[0,+150]]])
 force_initial2 = ([[[0,-15,]],[[0,0]]])
 
 
-meduse = [pos, matrice_adjacence,force_initial]
+meduse = [pos, matrice_adjacence,force_musc_periode2]
 med2 = [pos2, matrice_adjacence, force_initial]
 
 """
@@ -50,8 +233,8 @@ baton = [pos3, matrice_adjacence3, force_initial2]
 
 
 forces = []
-pos, liste_forces  = calcul_position(meduse)[1], calcul_position(meduse)[2]
-v2,pos2,liste_forces2 = calcul_position(med2)
+v,pos,liste_forces,score  = calcul_position(meduse,DT,DUREE_SIM)
+v2,pos2,liste_forces2,score2 = calcul_position(med2,DT,DUREE_SIM)
 # pos3 = calcul_position(baton)[1]
 t = 0
 
@@ -60,13 +243,12 @@ def visualisation_creature(i_generation,i_creature=0):
         creature = json.load(f)[i_creature][1:]  # de la forme [position,matrice_adjacence,forces] 
     pos = calcul_position([np.array(element) for element in creature])[1]
     return pos
-pos = visualisation_creature(1)  # Visualiser la première créature de la première génération
 
 #Test bulles
 bubbles = instantiate_bubbles(30)
 position_tot={0:pos,1:pos2}
 
-while running and t < DUREE_SIM/(1/60):
+while running and t < DUREE_SIM/(DT):
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
