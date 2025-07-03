@@ -100,17 +100,7 @@ def nombre_de_voisins(k, i, creatures):
 
     return F_visq"""
 
-def frottement_eau_3(vitesse:np.ndarray,neighbours:np.ndarray,position:np.ndarray,t,alpha:float = 1):
-    l=len(position)
-    F_visq = np.zeros((l,2))
-    v_moy = vitesse_moyenne(vitesse,t)
 
-    norm_locales = somme_normales_locales(position,neighbours,t)
-    for node, normale in enumerate(norm_locales):
-        if np.linalg.norm(normale) > 1e-10:
-            F_visq[node] = -alpha*(vitesse[node,t]-v_moy)*np.dot((vitesse[node,t]-v_moy),normale)
-            #print(f"à l'aide: {norm_locales},{vitesse[node,t]},{v_moy},{F_visq}")
-    return F_visq    
 
 def frottement_eau_globale(vitesse:np.ndarray,neighbours:np.ndarray,position:np.ndarray,t,alpha:float = 1):
     l=len(position)
@@ -140,7 +130,7 @@ def frottement_eau_globale(vitesse:np.ndarray,neighbours:np.ndarray,position:np.
 
     return F_visq
 
-def force_rappel_amortie(positions, vitesses, l0, t, k=10e-3, c=10):
+def force_rappel_amortie(positions, vitesses, l0, t, k=1, c=0.1):
     """
     Ajoute un amortissement proportionnel à la vitesse relative le long de l’axe du ressort
     """
@@ -403,15 +393,30 @@ def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
     for t in range(1,int(n_interval_time)):
 
         #calcul de la force de frottement liée à l'eau
+<<<<<<< HEAD
         f_eau[:,t] = frottement_eau_3(v,matrice_adjacence,xy,t-1,10)
+=======
+<<<<<<< HEAD
+        f_eau[:,t] = 0 #frottement_eau_globale(v,matrice_adjacence,xy,t-1,1)
+=======
+        f_eau[:,t] = frottement_eau_globale(v,matrice_adjacence,xy,t-1,10)
+>>>>>>> a95a4b15e819e330ee745cd766f5573cc87e67ac
+>>>>>>> 31afbc90f15d993a12c01913f5d6771690274ce7
 
         #force de rappel en chacun des sommets
         f_rap[:,t] = force_rappel_amortie(xy, v, l0, t-1)
 
         f_musc_proj[:,t] = force_musc_projetee(xy, matrice_adjacence, f_musc, t-1) 
+<<<<<<< HEAD
         #force_reaction[:,t] = action_reaction(f_musc[:,t], xy[:,t], l0)  
+=======
+        force_reaction[:,t] = action_reaction(f_musc[:,t], xy[:,t], l0)  
+<<<<<<< HEAD
+=======
+>>>>>>> 31afbc90f15d993a12c01913f5d6771690274ce7
         #print(np.shape(f_rap))
         #print(np.shape(force_reaction)) 
+>>>>>>> a95a4b15e819e330ee745cd766f5573cc87e67ac
         #Array rassemblant les différentes forces
         #print(np.linalg.norm(f_eau[:,t]),np.linalg.norm(f_rap[:,t]))
         liste_forces = np.array([f_rap, f_eau,f_musc_proj, force_reaction])  # Liste des forces appliquées à chaque noeud
