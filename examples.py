@@ -415,7 +415,6 @@ def adn_suppression_force(creature):
     return [positions, connections, forces]
 
 
-# FONCTION A TESTER
 def adn_duree_cycle_forces(creature):
     """Modifie la durée du cycle des forces de la créature.
     V1 : On rajoute x 0 ou on supprime les x derniers temps avec x aléatoire"""
