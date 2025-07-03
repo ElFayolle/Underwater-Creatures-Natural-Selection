@@ -1,4 +1,5 @@
 from utils import *
+from params import *
 
 def frottement_eau(vitesse:np.ndarray,neighbours:np.ndarray,position:np.ndarray,t,alpha:float = 1):  #UNE créature, UNE vitesse associée. Shapes = [N_noeuds,N_t,2]
     """Retourne les forces appliquées à chaque sommet i d'une créature dû à l'eau"""
@@ -74,6 +75,7 @@ def contrainte_longueurs(xy, l0, matrice_adjacence, t):
     centre_apres = centre_de_masse(xy, t)
     xy_t += centre_avant - centre_apres  # Recentre les positions
     return xy_t
+
 
 def frottement_eau_globale(vitesse:np.ndarray,neighbours:np.ndarray,position:np.ndarray,t,alpha:float = 1):
     l=len(position)
