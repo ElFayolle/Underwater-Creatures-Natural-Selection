@@ -239,7 +239,7 @@ def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
     for t in range(1,int(n_interval_time)):
         #calcul de la force de frottement liée à l'eau
 
-        f_eau[:,t] = frottement_global(v,matrice_adjacence,xy,t-1) #np.array([[10,10]for _ in range(n_nodes)]) 
+        f_eau[:,t] = 0#frottement_global(v,matrice_adjacence,xy,t-1) #np.array([[10,10]for _ in range(n_nodes)]) 
         #f_visc[:,t] = -gamma*v[:,t]
         #force de rappel en chacun des sommets
         #f_rap[:,t] = 0 #force_rappel_amortie(xy, v, l0, t-1) 
@@ -255,7 +255,7 @@ def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
         v[:, t] = v[:, t-1] + dt * a[:, t-1]
         xy[:, t] = xy[:,t-1] + dt * v[:, t-1]
         xy[:, t] = contrainte_longueurs(xy, l0, matrice_adjacence, t)
-
+    score = distance(xy,-1)  # Calcul du score de la créature à l'instant t
     return (v, xy, liste_forces, score)
 
 
