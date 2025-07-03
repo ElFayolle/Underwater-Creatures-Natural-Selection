@@ -259,9 +259,9 @@ def adn_ajout_segment(creature):
     On tente 10 fois de placer un nouveau segment (avec 10 positions différentes), si on a 10 échecs on abandonne en renvoyant la créature telle quelle"""
     
     max_iterations = 10
-    positions = creature[0]
-    connections = creature[1]
-    forces = creature[2]
+    positions = np.copy(creature[0])
+    connections = np.copy(creature[1])
+    forces = np.copy(creature[2])
 
     while max_iterations > 0 :
         randomized_length = random.gauss(LENGTH, LENGTH/3)
@@ -293,6 +293,9 @@ def adn_ajout_segment(creature):
 
         connections[sommet][-1] = randomized_length
         max_iterations = 0
+
+        forces_point = force_musculaire_aleatoire_noeud(len(forces[0]))
+        forces = np.concatenate([forces, [forces_point]])
     return ([positions, connections, forces])
 
 
@@ -301,9 +304,9 @@ def adn_suppression_segment(creature):
     On retire un noeud qui est en bout de chaîne pour éviter d'avoir une créature coupée en deux.
     Prend en argument une créature [positions, matrice, forces] et renvoie une créature (avec un noeud de moins)"""
     
-    positions = creature[0]
-    connections = creature[1]
-    forces = creature[2]
+    positions = np.copy(creature[0])
+    connections = np.copy(creature[1])
+    forces = np.copy(creature[2])
     n = len(positions)
 
     candidats = []
@@ -326,6 +329,10 @@ def adn_suppression_segment(creature):
     connections1 = connections[:,:noeud_suppr]
     connections2 = connections[:,noeud_suppr + 1:]
     connections = np.concatenate([connections1, connections2], axis = 1)
+
+    forces1 = forces[:noeud_suppr]
+    forces2 = forces[noeud_suppr + 1:]
+    forces = np.concatenate([forces1, forces2], axis = 1)
 
     return ([positions, connections, forces])
 
@@ -491,18 +498,12 @@ def afficher_creature(ax, positions, connections, color='b', title=""):
 def mutation_creature(creature):
     """Applique une mutation à la créature.
     Renvoie la créature modifiée."""
-    """liste_mutations = [
+    liste_mutations = [
         adn_longueur_segment,
         adn_changement_amplitude_force,
         adn_changement_ordre_force,
         adn_ajout_segment,
         adn_suppression_segment,
-        adn_changement_position_noeud
-    ]"""
-    liste_mutations = [
-        adn_changement_amplitude_force,
-        adn_changement_ordre_force,
-        adn_ajout_segment,
         adn_changement_position_noeud
     ]
     mutation = random.choice(liste_mutations)
@@ -525,6 +526,8 @@ def creature_force_musculaire_aleatoire(creatures_tot):
     return creatures_tot
 
 def force_musculaire_aleatoire_noeud(ticks):
+    """Génère des forces aléatoires sous forme vectorielle pendant un nombre donné de ticks
+    Prend en argument le nombre de ticks et renvoie un tableau numpy des forces sur l'ensemble des ticks"""
     force_musc_noeud = np.zeros((ticks, 2))
     mask = np.zeros(ticks, dtype=bool)  # On prépare un masque
     n_movements = np.random.randint(MIN_N_MOVEMENTS, MAX_N_MOVEMENTS)  # Nombre de mouvements dans un cycle pour le noeud
