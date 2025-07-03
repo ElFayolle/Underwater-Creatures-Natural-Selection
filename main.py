@@ -32,9 +32,9 @@ accelerations = []
 
 def centres_de_masse(positions_tot:np.ndarray,t):
 
-    C_tot = np.zeros((len(positions_tot,2)))
+    C_tot = np.zeros((len(positions_tot), 2))
     for index,pos in enumerate(positions_tot): # Boucle for berk mais je ne trouve rien de pratique
-        C_tot[index] = centre_de_masse(pos) 
+        C_tot[index] = centre_de_masse(pos, t) 
     return C_tot
 
 def centre_de_masse(position:np.ndarray,t):
@@ -159,7 +159,7 @@ def force_rappel_amortie(positions, vitesses, l0, t, k=1, c=0.1):
 
 def action_reaction(force_musc, pos, l0):
     """
-
+    Calcule les forces de réaction selon le principe d'action-réaction
     """
     force_reaction = np.zeros((len(pos), 2))  # Initialisation des forces de réaction
     for i in range(len(pos)):

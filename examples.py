@@ -131,33 +131,33 @@ def is_valid_creature(positions, distance_matrix):
     return is_symmetric(distance_matrix) and distances_match(positions, distance_matrix)
 
 
-# creatures_tot = {}
-# for i in range(NOMBRE_DE_CREATURES):
-#     pos, dist = create_random_creature()
-#     creatures_tot[i] = [pos, dist]
+creatures_tot = {}
+for i in range(NOMBRE_DE_CREATURES):
+    pos, dist = create_random_creature()
+    creatures_tot[i] = [pos, dist]
 
-# fig, axes = plt.subplots(5, 5, figsize=(15, 6))
-# axes = axes.flatten()
+fig, axes = plt.subplots(5, 5, figsize=(15, 6))
+axes = axes.flatten()
 
-# for i, ax in enumerate(axes):
-#     pos, dist = creatures_tot[i]
-#     for j in range(len(pos)):
-#         x, y = pos[j]
-#         ax.plot(x, y, 'ko')
-#         ax.text(x + 1, y + 1, str(j), fontsize=8)
-#         for k in range(j+1, len(pos)):
-#             if dist[j][k] != 0:
-#                 x2, y2 = pos[k]
-#                 ax.plot([x, x2], [y, y2], 'b-')
+for i, ax in enumerate(axes):
+    pos, dist = creatures_tot[i]
+    for j in range(len(pos)):
+        x, y = pos[j]
+        ax.plot(x, y, 'ko')
+        ax.text(x + 1, y + 1, str(j), fontsize=8)
+        for k in range(j+1, len(pos)):
+            if dist[j][k] != 0:
+                x2, y2 = pos[k]
+                ax.plot([x, x2], [y, y2], 'b-')
 
-#     ax.set_title(f"Créature {i}")
-#     ax.axis('equal')
-#     ax.set_xticks([])
-#     ax.set_yticks([])
-#     ax.grid(True)
+    ax.set_title(f"Créature {i}")
+    ax.axis('equal')
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.grid(True)
 
-# plt.tight_layout()
-# plt.show()
+plt.tight_layout()
+plt.show()
 
 MIN_TICKS = 50
 MAX_TICKS = 60
