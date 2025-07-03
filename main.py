@@ -128,7 +128,7 @@ def frottement_eau_globale(vitesse:np.ndarray,neighbours:np.ndarray,position:np.
 
     return F_visq
 
-def force_rappel_amortie(positions, vitesses, l0, t, k=10e-3, c=10):
+def force_rappel_amortie(positions, vitesses, l0, t, k=1, c=0.1):
     """
     Ajoute un amortissement proportionnel à la vitesse relative le long de l’axe du ressort
     """
@@ -331,13 +331,11 @@ def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
     for t in range(1,int(n_interval_time)):
 
         #calcul de la force de frottement liée à l'eau
-        f_eau[:,t] = frottement_eau_globale(v,matrice_adjacence,xy,t-1,1)
+        f_eau[:,t] = 0 #frottement_eau_globale(v,matrice_adjacence,xy,t-1,1)
 
         #force de rappel en chacun des sommets
         f_rap[:,t] = force_rappel_amortie(xy, v, l0, t-1) 
         force_reaction[:,t] = action_reaction(f_musc[:,t], xy[:,t], l0)  
-        print(np.shape(f_rap))
-        print(np.shape(force_reaction)) 
         #Array rassemblant les différentes forces
         liste_forces = np.array([f_rap, force_reaction,f_musc])
         
