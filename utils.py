@@ -65,8 +65,9 @@ def energie_cinetique(vitesse, t, masse = 1):
 def distance(position,t):
     return round(np.linalg.norm(centre_de_masse(position,t)-centre_de_masse(position,0)),0)
 
-def score(energie, distance, taille):
-    score = 2/3*distance/max(distance) + 1/3* energie/taille * max(taille/energie)
+def calcul_score(energie, distance, taille):
+    #score = 2/3*distance/max(distance) + 1/3* energie/taille * max(taille/energie)
+    return distance
 
 def iter_score(position, vitesse): # Calcule les grandeurs liées au score d'UNE créature
     masse = len(position)   # masse et taille sont identiques ici

@@ -243,4 +243,4 @@ def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
         xy[:, t] = xy[:,t-1] + dt * v[:, t-1]
         xy[:, t] = contrainte_longueurs(xy, l0, matrice_adjacence, t)
 
-    return (v, xy, liste_forces)
+    return (v, xy, liste_forces, score)
