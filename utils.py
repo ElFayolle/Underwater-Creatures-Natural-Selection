@@ -62,8 +62,6 @@ def energie_cinetique(vitesse, t, masse = 1):
     energie = 0.5 * masse * np.sum(vitesse_norm**2)  # somme des énergies cinétiques
     return energie
 
-print("Energie cinétique", energie_cinetique(vit, 1))  # Affiche l'énergie cinétique pour les vitesses données
-
 
 def distance(position,t):
     return round(np.linalg.norm(centre_de_masse(position,t)-centre_de_masse(position,0)),0)
