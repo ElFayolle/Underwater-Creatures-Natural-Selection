@@ -8,6 +8,10 @@ import json
 LENGTH = 70
 NOMBRE_DE_CREATURES = 100
 
+def calcul_distance(point1, point2):
+    x1, y1, x2, y2 = point1[0], point1[1], point2[0], point2[1]
+    return (math.sqrt((y2 - y1)**2 + (x2 - x1)**2))
+
 def point_exists(new_pos, positions, tol=1e-6):
     """Fonction qui vérifie si le point new_pos recouvre un point déjà existant (vrai si recouvrement)"""
     for p in positions:
@@ -23,6 +27,7 @@ def croisement(positions, connections, new_pos, base_index):
 
     new_segment = (point1, point2)
 
+    # Liste des segments de la créature (en coordonnées) sauf ceux partant de base_index
     liste_segments = []
     for i in range(len(connections)):
         for j in range(i):
@@ -41,7 +46,8 @@ def croisement(positions, connections, new_pos, base_index):
 
 def croisement_segments(segment1, segment2):
     """Vérifie si deux segments se croisent.
-    Renvoie True s'il y a croisement."""
+    Renvoie True s'il y a croisement.
+    Si on compare deux segments partageant une extrémité, on renvoie False."""
     p1, p2 = segment1
     p3, p4 = segment2
     x1, y1 = p1
@@ -50,7 +56,7 @@ def croisement_segments(segment1, segment2):
     x4, y4 = p4
 
     #Test d'égalité de point - si les segments partent du même point ils ne se croisent pas
-    if (x1 == x3 and y1 == y3) or (x1 == x4 and y1 == y4) :
+    if (x1 == x3 and y1 == y3) or (x1 == x4 and y1 == y4) or (x2 == x3 and y2 == y3) or (x2 == x4 and y2 == y4) :
         return False
 
     #Coefficients de la droite AB
@@ -74,7 +80,7 @@ def croisement_segments(segment1, segment2):
 
 
 def create_random_creature():
-    num_points = random.randint(4, 6)
+    num_points = random.randint(5, 6)
     positions = [[0, 0]]
     connections = [[0]]  #Matrice d'adjacence (de distances)
     i = 0
@@ -128,13 +134,14 @@ def distances_match(positions, distance_matrix):
     return True
 
 def is_valid_creature(positions, distance_matrix):
+    """Vérifie si la matrice des distances est symétrique ainsi que la correspondance entre la matrice et les coordonnées"""
     return is_symmetric(distance_matrix) and distances_match(positions, distance_matrix)
 
 
-# creatures_tot = {}
-# for i in range(NOMBRE_DE_CREATURES):
-#     pos, dist = create_random_creature()
-#     creatures_tot[i] = [pos, dist]
+creatures_tot = {}
+for i in range(NOMBRE_DE_CREATURES):
+    pos, dist = create_random_creature()
+    creatures_tot[i] = [pos, dist]
 
 # fig, axes = plt.subplots(5, 5, figsize=(15, 6))
 # axes = axes.flatten()
@@ -166,14 +173,16 @@ MAX_N_MOVEMENTS = 30
 MIN_FORCE_MUSC = -1000
 MAX_FORCE_MUSC = 1000
 
+
 def adn_longueur_segment(creature):
     """Modifie la longueur d'un segment (entre deux points connectés) de la créature.
     Ne modifie la créature que si la nouvelle configuration est valide (sans croisement), sinon la créature reste la même."""
-    positions, connections, forces = creature[0], creature[1], creature[2]
+    positions, connections, forces = np.copy(creature[0]), np.copy(creature[1]), np.copy(creature[2])
     n = len(positions)
 
     # Choisir un sommet k, puis un voisin i (on suppose que k a toujours au moins un voisin)
-    k = random.randint(0, n - 1)
+    #k = random.randint(0, n - 1)
+    k = 0
     voisins = [j for j in range(n) if connections[k][j] != 0]
     i = random.choice(voisins)
 
@@ -195,6 +204,14 @@ def adn_longueur_segment(creature):
     positions[k] = new_pos_k.tolist()
     connections[k][i] = new_length
     connections[i][k] = new_length
+
+    #Recalcul des distances avec les voisins
+    for voisin, distance in enumerate(connections[k]) :
+        if distance != 0 and voisin != k :
+            nouvelle_distance = calcul_distance(positions[voisin], positions[k])
+            connections[voisin][k] = nouvelle_distance
+            connections[k][voisin] = nouvelle_distance
+
 
     return (positions, connections, forces)
 
@@ -272,7 +289,8 @@ def adn_ajout_segment(creature):
 
 
 def adn_suppression_segment(creature):
-    """Retire le dernier noeud (et donc un segment) de la créature.
+    """Retire un noeud (et donc un segment) à la créature.
+    On retire un noeud qui est en bout de chaîne pour éviter d'avoir une créature coupée en deux.
     Prend en argument une créature [positions, matrice, forces] et renvoie une créature (avec un noeud de moins)"""
     
     positions = creature[0]
@@ -280,31 +298,117 @@ def adn_suppression_segment(creature):
     forces = creature[2]
     n = len(positions)
 
-    print(connections, positions)
+    candidats = []
 
-    positions = positions[:-1]
+    for index, sommet in enumerate(connections) :
+        if sum([1 for i in sommet if i != 0]) == 1 :
+            candidats.append(index)
+
+    noeud_suppr = random.choice(candidats)
+    positions1 = positions[:noeud_suppr]
+    positions2 = positions[noeud_suppr + 1:]
+    positions = np.concatenate([positions1, positions2], axis = 0)
     
-    # Mettre à jour matrice de distances
-    connections = connections[:-1, :-1]
     
-    print(connections, positions)
+    connections1 = connections[:noeud_suppr]
+    connections2 = connections[noeud_suppr + 1:]
+    connections = np.concatenate([connections1, connections2], axis = 0)
+
+    connections1 = connections[:,:noeud_suppr]
+    connections2 = connections[:,noeud_suppr + 1:]
+    connections = np.concatenate([connections1, connections2], axis = 1)
+
     return ([positions, connections, forces])
 
 
+def creature_est_valide(creature):
+    """Vérifie si la créature contient des segments qui se croisent.
+    Attention : beaucoup de tests car on regarde tous les couples de segments"""
+    n = len(creature[0])
 
-pos, dist = create_random_creature()
-creature_test = [pos, dist]
-n = len(pos) # Nombre de noeuds
-ticks = random.randint(MIN_TICKS, MAX_TICKS) # Nombre de ticks pour un cycle
-force_musc = np.zeros((n,ticks,2))
-mask = np.zeros((n, ticks), dtype=bool) # On prépare un masque
-for i in range(n):
-    n_movements = np.random.randint(MIN_N_MOVEMENTS, MAX_N_MOVEMENTS) # Nombre de mouvements dans un cycle pour le noeud i
-    mask[i, np.random.choice(ticks, size=n_movements, replace=False)] = True
-force_musc[mask] = MIN_FORCE_MUSC + (MAX_FORCE_MUSC - MIN_FORCE_MUSC) * np.random.random((mask.sum(),2))
-creature_test.append(force_musc)
+    # Liste des segments de la créature (en coordonnées) sauf ceux partant de base_index
+    liste_segments = []
+    for i in range(n):
+        for j in range(i):
+            if creature[1][i][j] != 0:
+                segment = ((creature[0][i][0], creature[0][i][1]), (creature[0][j][0], creature[0][j][1]))
+                liste_segments.append(segment)
+    
+    for seg1 in liste_segments :
+        for seg2 in liste_segments :
+            if croisement_segments(seg1, seg2) :
+                return False
+    return True
 
-creature_test_heritee = adn_suppression_segment(creature_test)
+
+
+def adn_changement_position_noeud (creature):
+    """Modifie la position d'un noeud de la créature, en gardant les mêmes relations entre les noeuds.
+    Ne modifie la créature que si la nouvelle configuration est valide (sans croisement), sinon la créature reste la même."""
+
+    positions = np.copy(creature[0])
+    connections = np.copy(creature[1])
+    forces = np.copy(creature[2])
+    
+    n = len(positions)
+
+    # Choisir un sommet k, puis un voisin i (on suppose que k a toujours au moins un voisin)
+    k = random.randint(0, n - 1)
+    #print("Sommet choisi pour déplacer :", k)
+
+    # Vecteur du segment ik
+    dx = random.randint(-30, 30)
+    dy = random.randint(-30, 30)
+    vec = np.array([dx, dy])
+
+    positions[k] = [positions[k][0] + dx, positions[k][1] + dy]
+
+    #Recalcul des distances avec les voisins
+    for voisin, distance in enumerate(connections[k]) :
+        if distance != 0 and voisin != k :
+            nouvelle_distance = calcul_distance(positions[voisin], positions[k])
+            connections[voisin][k] = nouvelle_distance
+            connections[k][voisin] = nouvelle_distance
+
+    if not creature_est_valide([positions, connections, forces]) :
+        print("Impossible de bouger le point ", k)
+        return creature
+    
+    return (positions, connections, forces)
+
+
+def afficher_deux_creatures_sur_meme_graphe(ax, positions1, connections1, positions2, connections2):
+    """Affiche deux créatures superposées avec couleurs différentes (avant/après mutation)."""
+    n1 = len(positions1)
+    for i in range(n1):
+        x, y = positions1[i]
+        ax.plot(x, y, 'bo')  # Avant mutation : bleu
+        ax.text(x + 1, y + 1, str(i), fontsize=8, color='b')
+        for j in range(i+1, n1):
+            if connections1[i][j] != 0:
+                x2, y2 = positions1[j]
+                ax.plot([x, x2], [y, y2], 'b--', linewidth=1)
+
+    n2 = len(positions2)
+    for i in range(n2):
+        x, y = positions2[i]
+        ax.plot(x, y, 'ro')  # Après mutation : rouge
+        ax.text(x + 1, y - 3, str(i), fontsize=8, color='r')
+        for j in range(i+1, n2):
+            if connections2[i][j] != 0:
+                x2, y2 = positions2[j]
+                ax.plot([x, x2], [y, y2], 'r-', linewidth=2)
+
+    ax.set_title("Bleu : avant / Rouge : après mutation")
+    ax.axis('equal')
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.grid(True)
+
+# Affichage matplotlib
+fig, ax = plt.subplots(figsize=(8, 8))
+afficher_deux_creatures_sur_meme_graphe(ax, creature_test[0], creature_test[1], creature_test_heritee[0], creature_test_heritee[1])
+plt.show()
 
 
 def afficher_creature(ax, positions, connections, color='b', title=""):
@@ -339,22 +443,38 @@ for key, value in creatures_tot.items():
     force_musc[mask] = MIN_FORCE_MUSC + (MAX_FORCE_MUSC - MIN_FORCE_MUSC) * np.random.random((mask.sum(),2))
     creatures_tot[key].append(force_musc)
 
-# with open("creatures_text.txt", "w", encoding = 'utf-8') as fichier_texte :
-#   for key, creature in creatures_tot.items() :
-#       fichier_texte.write(f"Créature n° {key} :\n\n")
-#       fichier_texte.write(f"Positions des noeuds : \n{creature[0]}\n\n\n")
-#       fichier_texte.write(f"Matrice d'adjacence avec distances : \n{creature[1]}\n\n\n")
-#       fichier_texte.write(f"Forces par noeud en fonction du temps : \n{creature[2]}\n\n\n")
+with open("creatures_text.txt", "w", encoding = 'utf-8') as fichier_texte :
+  for key, creature in creatures_tot.items() :
+      fichier_texte.write(f"Créature n° {key} :\n\n")
+      fichier_texte.write(f"Positions des noeuds : \n{creature[0]}\n\n\n")
+      fichier_texte.write(f"Matrice d'adjacence avec distances : \n{creature[1]}\n\n\n")
+      fichier_texte.write(f"Forces par noeud en fonction du temps : \n{creature[2]}\n\n\n")
 
-# with open("creatures.json", "w", encoding="utf-8") as f:
-#     json_creatures = []
-#     for key, creature in creatures_tot.items():
-#         # Convertir en listes natives
-#         pos = creature[0].tolist() if hasattr(creature[0], "tolist") else creature[0]
-#         mat = creature[1].tolist() if hasattr(creature[1], "tolist") else creature[1]
-#         forc = creature[2].tolist() if hasattr(creature[2], "tolist") else creature[2]
-#         json_creatures.append([key, pos, mat, forc])
-#     json.dump(json_creatures, f, indent=2)
+with open("creatures.json", "w", encoding="utf-8") as f:
+    json_creatures = []
+    for key, creature in creatures_tot.items():
+        # Convertir en listes natives
+        pos = creature[0].tolist() if hasattr(creature[0], "tolist") else creature[0]
+        mat = creature[1].tolist() if hasattr(creature[1], "tolist") else creature[1]
+        forc = creature[2].tolist() if hasattr(creature[2], "tolist") else creature[2]
+        json_creatures.append([key, pos, mat, forc])
+    json.dump(json_creatures, f, indent=2)
 
-# with open("creatures_text.txt") as fichier_texte:
-#   print(fichier_texte.read())
+with open("creatures_text.txt") as fichier_texte:
+  print(fichier_texte.read())
+
+
+
+# pos, dist = create_random_creature()
+# creature_test = [pos, dist]
+# n = len(pos) # Nombre de noeuds
+# ticks = random.randint(MIN_TICKS, MAX_TICKS) # Nombre de ticks pour un cycle
+# force_musc = np.zeros((n,ticks,2))
+# mask = np.zeros((n, ticks), dtype=bool) # On prépare un masque
+# for i in range(n):
+#     n_movements = np.random.randint(MIN_N_MOVEMENTS, MAX_N_MOVEMENTS) # Nombre de mouvements dans un cycle pour le noeud i
+#     mask[i, np.random.choice(ticks, size=n_movements, replace=False)] = True
+# force_musc[mask] = MIN_FORCE_MUSC + (MAX_FORCE_MUSC - MIN_FORCE_MUSC) * np.random.random((mask.sum(),2))
+# creature_test.append(force_musc)
+
+# creature_test_heritee = adn_longueur_segment(creature_test)
