@@ -16,7 +16,7 @@ def centre_de_masse(position:np.ndarray,t):
 def somme_normales_locales(position,neighbours,t):
     dico_normales = normales_locales(position, neighbours, t)
     normales_totales = np.zeros((len(position), 2))
-    eps=1e-10
+    eps=1e-6
     for couple, normale in dico_normales.items():
         normales_totales[couple[0]] += normale
         normales_totales[couple[1]] += normale
@@ -35,12 +35,10 @@ def normales_locales(position,neighbours,t)->dict:
             if ((index,i) in d) ^ ((i,index) not in d): 
                 BA = -position[index,t]+position[i,t] # Vecteur BA avec A le premier sommet 
                 norm = np.linalg.norm(BA)
-                if norm>1e-6:
-                # Coordonnées locales 
-                    cos_theta = np.dot(BA,np.array([1,0]))/np.linalg.norm(BA)
-                    sin_theta = np.dot(BA,np.array([0,1]))/np.linalg.norm(BA)
-                    normale_locale = +cos_theta*np.array([0,1]) - sin_theta*np.array([1,0])
-                    d[(index,i)] = normale_locale
+                cos_theta = np.dot(BA,np.array([1,0]))/np.linalg.norm(BA)
+                sin_theta = np.dot(BA,np.array([0,1]))/np.linalg.norm(BA)
+                normale_locale = +cos_theta*np.array([0,1]) - sin_theta*np.array([1,0])
+                d[(index,i)] = normale_locale
     return d  
 
 def vitesse_moyenne(vitesse, t):
@@ -61,6 +59,7 @@ def energie_cinetique(vitesse, t, masse = 1):
     vitesse_norm = np.linalg.norm(vitesse[:, int(t)], axis=1)  # norme de la vitesse pour chaque noeud
     energie = 0.5 * masse * np.sum(vitesse_norm**2)  # somme des énergies cinétiques
     return energie
+
 
 
 def distance(position,t):
