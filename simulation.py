@@ -2,6 +2,7 @@ import json
 import numpy as np
 import physics as p
 import examples as e
+import time
 
 N_SIMULATIONS = 10  # Nombre de simulations à effectuer
 
@@ -39,7 +40,10 @@ def simulation(i_simulation):
 def simulation_multiple(n):
     for i in range(n):
         print(f"Simulation {i+1} en cours...")
+        debut = time.time()
         simulation(i)
+        fin = time.time()
+        print(f"Simulation {i+1} terminée en {fin - debut:.2f} secondes.")
     print("Simulations terminées.")
 
 def mutation_toutes(creatures):
