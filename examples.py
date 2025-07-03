@@ -149,33 +149,33 @@ def is_valid_creature(positions, distance_matrix):
 
 
 
-creatures_tot = {}
-for i in range(NOMBRE_DE_CREATURES):
-    pos, dist = create_random_creature()
-    creatures_tot[i] = [pos, dist]
+# creatures_tot = {}
+# for i in range(NOMBRE_DE_CREATURES):
+#     pos, dist = create_random_creature()
+#     creatures_tot[i] = [pos, dist]
 
-fig, axes = plt.subplots(5, 5, figsize=(15, 6))
-axes = axes.flatten()
+# fig, axes = plt.subplots(5, 5, figsize=(15, 6))
+# axes = axes.flatten()
 
-for i, ax in enumerate(axes):
-    pos, dist = creatures_tot[i]
-    for j in range(len(pos)):
-        x, y = pos[j]
-        ax.plot(x, y, 'ko')
-        ax.text(x + 1, y + 1, str(j), fontsize=8)
-        for k in range(j+1, len(pos)):
-            if dist[j][k] != 0:
-                x2, y2 = pos[k]
-                ax.plot([x, x2], [y, y2], 'b-')
+# for i, ax in enumerate(axes):
+#     pos, dist = creatures_tot[i]
+#     for j in range(len(pos)):
+#         x, y = pos[j]
+#         ax.plot(x, y, 'ko')
+#         ax.text(x + 1, y + 1, str(j), fontsize=8)
+#         for k in range(j+1, len(pos)):
+#             if dist[j][k] != 0:
+#                 x2, y2 = pos[k]
+#                 ax.plot([x, x2], [y, y2], 'b-')
 
-    ax.set_title(f"Créature {i}")
-    ax.axis('equal')
-    ax.set_xticks([])
-    ax.set_yticks([])
-    ax.grid(True)
+#     ax.set_title(f"Créature {i}")
+#     ax.axis('equal')
+#     ax.set_xticks([])
+#     ax.set_yticks([])
+#     ax.grid(True)
 
-plt.tight_layout()
-plt.show()
+# plt.tight_layout()
+# plt.show()
 
 
 
@@ -384,6 +384,57 @@ def adn_changement_position_noeud (creature):
         return creature
     
     return (positions, connections, forces)
+
+
+def adn_ajout_force(creature):
+    """Ajoute une force supplémentaire à un noeud aléatoire à un moment aléatoire du cycle (un moment où il n'y a pas de force)
+    Prend en argument une créature et renvoie une créature"""
+    forces = np.copy(creature[2])
+    positions, connections = np.copy(creature[0]), np.copy(creature[1])
+
+    noeud = random.randint(0, len(positions) - 1)
+
+    indices = [index for index, vecteur in enumerate(forces[noeud]) if vecteur.all() == 0]
+    indice_changement = random.choice(indices)
+
+    forces[noeud][indice_changement][0] = MIN_FORCE_MUSC + (MAX_FORCE_MUSC - MIN_FORCE_MUSC) * random.random()
+    forces[noeud][indice_changement][1] = MIN_FORCE_MUSC + (MAX_FORCE_MUSC - MIN_FORCE_MUSC) * random.random()
+    
+    return [positions, connections, forces]
+
+def adn_suppression_force(creature):
+    """Enlève une force (non nulle) aléatoire du cycle d'un noeud aléatoire de la créature.
+    Prend en argument une créature et renvoie une créature."""
+    forces = np.copy(creature[2])
+    positions, connections = np.copy(creature[0]), np.copy(creature[1])
+
+    noeud = random.randint(0, len(positions) - 1)
+
+    indices = [index for index, vecteur in enumerate(forces[noeud]) if vecteur.any() != 0]
+    indice_changement = random.choice(indices)
+
+    forces[noeud][indice_changement][0] = 0
+    forces[noeud][indice_changement][1] = 0
+    
+    return [positions, connections, forces]
+
+
+def adn_duree_cycle_forces(creature):
+    """Modifie la durée du cycle des forces de la créature.
+    V1 : On rajoute x 0 ou on supprime les x derniers temps avec x aléatoire"""
+
+    forces = np.copy(creature[2])
+    x = random.randint(1, 10)
+    sens = random.choice([-1, 1])
+    print(np.shape(forces))
+    if sens == -1 :
+        forces = forces[:,:-x]
+    else :
+        forces = np.concatenate([forces, np.zeros((len(forces), x, 2))], axis = 1)
+    print(np.shape(forces), x, sens)
+
+    return [np.copy(creature[0]), np.copy(creature[1]), forces]
+
 
 
 def afficher_deux_creatures_sur_meme_graphe(ax, positions1, connections1, positions2, connections2):
