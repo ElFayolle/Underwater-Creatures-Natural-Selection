@@ -2,16 +2,15 @@ import pygame
 import numpy as np
 from utils import *
 from params import *
+# Set up the clock for frame rate control
 
 def see_creatures(position_tot,event:pygame.event):
     global CURRENT_CREATURE
     if event.key == pygame.K_LEFT:
-            if CURRENT_CREATURE!=0:
-                CURRENT_CREATURE-=1
+        CURRENT_CREATURE=(CURRENT_CREATURE-1)%len(position_tot)
     if event.key == pygame.K_RIGHT:
-            if CURRENT_CREATURE<len(position_tot)-1:
-                CURRENT_CREATURE+=1
-    return None
+        CURRENT_CREATURE=(CURRENT_CREATURE+1)%len(position_tot)
+    return CURRENT_CREATURE
 
 def draw_creature(screen,pos, liste_forces, t, offset):
     """Dessinne une créature à un temps t"""

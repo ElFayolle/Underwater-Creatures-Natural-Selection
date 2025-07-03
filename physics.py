@@ -118,7 +118,7 @@ def frottement_eau_3(vitesse:np.ndarray,neighbours:np.ndarray,position:np.ndarra
         if np.count_nonzero(neighbours[node])<=1:
             if np.linalg.norm(normale) > 1e-10:
                 #F_visq[node] = -alpha*(vitesse[node,t])*np.dot((vitesse[node,t]),normale)
-                F_visq[node] = -alpha*(vitesse[node,t])*np.linalg.norm((vitesse[node,t]))
+                F_visq[node] = -alpha*(vitesse[node,t])*np.linalg.norm((vitesse[node,t]))*np.sum(neighbours[node])  
         else:
                 F_visq[node] = -alpha*(vitesse[node,t])
     #print(F_visq[1],vitesse[0,t],vitesse[1,t],vitesse[2,t],norm_locales[2],)
