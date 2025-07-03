@@ -98,6 +98,8 @@ def force_rappel_amortie(positions, vitesses, l0, t, k=10e-3, c=10):
     F_total[l0 == 0] = 0.0
     return F_total.sum(axis=0)
 
+
+
 def contrainte_longueurs(xy, l0, matrice_adjacence, t):
     """
     Ajuste xy_t (positions au temps t) pour que la distance entre chaque paire de noeuds connectés soit égale à l0.
@@ -123,6 +125,7 @@ def contrainte_longueurs(xy, l0, matrice_adjacence, t):
     centre_apres = centre_de_masse(xy, t)
     xy_t += centre_avant - centre_apres  # Recentre les positions
     return xy_t
+
 
 """
 
@@ -205,15 +208,28 @@ def distance(position,t):
 
 def action_reaction(force_musc, pos, l0):
     """
+    Calcule les forces de réaction sur chaque point en appliquant le principe d'action-réaction.
 
+    Parameters:
+    - force_musc (ndarray): Tableau des forces musculaires appliquées sur les points (shape: n_points x 2).
+    - pos (ndarray): Tableau des positions des points (shape: n_points x 2).
+    - l0 (ndarray): Matrice des longueurs au repos entre les points (shape: n_points x n_points).
+
+    Returns:
+    - force_reaction (ndarray): Tableau des forces de réaction pour chaque point (shape: n_points x 2).
     """
-    force_reaction = np.zeros((len(pos), 2))  # Initialisation des forces de réaction
-    for i in range(len(pos)):
-        for j in range(len(pos)):
+    n_points = len(pos)
+    force_reaction = np.zeros((n_points, 2))
+
+    for i in range(n_points):
+        for j in range(n_points):
             if l0[i, j] > 0:
-                # Calcul de la force de réaction selon le principe d'action-réaction
-                force_reaction[i] += -force_musc[j]
+                # Applique la force opposée à la force musculaire du point j sur le point i
+                force_reaction[i] -= force_musc[j]
+
     return force_reaction
+
+
 
 print( "test = ", action_reaction(np.array([[-1,0],[0,0], [-1,0]]), np.array([[0,0], [2,2], [2, 0]]), np.array([[0,1,0],[1,0, 1],[0,1,0]])) )  # Exemple de force de réaction pour 2 noeuds
 
@@ -297,8 +313,8 @@ def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
         
         #Calcul de la vitesse et position au temps t
         v[:, t] = v[:, t-1] + dt * a[:, t-1]
-        xy[:, t] = xy[:, t-1] + dt * v[:, t-1]
         xy[:, t] = contrainte_longueurs(xy, l0, matrice_adjacence, t)
+        xy[:, t] = xy[:, t-1] + dt * v[:, t-1]
 
     return (v, xy, liste_forces)
 
@@ -314,7 +330,6 @@ def iter_score(position, vitesse): # Calcule les grandeurs liées au score d'UNE
     return energie,distance,masse #return energie distance taille
 
 def selection(score_total:np.ndarray,force_total,):
-
     return None
 
 
@@ -448,7 +463,7 @@ med2 = [pos3, matrice_adjacence]
                #   [[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15][0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]]]
                  #
 
-force_initial = ([[[10,0]], [[0,0]], [[0,15]]])
+force_initial = ([[[10,0]], [[0,0]], [[-15,6]]])
 
 
 meduse = [pos, matrice_adjacence,force_initial]
@@ -487,6 +502,8 @@ while running and t < DUREE_SIM/(1/60):
     draw_bubbles(bubbles,offset,barycentre,0,t)
     draw_creature(pos, force,t, offset)
     #draw_creature(pos2,t,offset)
+
+
     font=pygame.font.Font(None, 24)
     text = font.render("distance : " + str(distance(pos,t)),1,(255,255,255))
     coulours_force = [(255,0,0),(0,255,0),(0,0,255)]
