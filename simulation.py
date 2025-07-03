@@ -1,6 +1,6 @@
 import json
 import numpy as np
-import main as m
+import main_test as m
 
 with open("creatures.json", "r", encoding="utf-8") as f:
     creatures = json.load(f)
