@@ -143,33 +143,33 @@ def is_valid_creature(positions, distance_matrix):
 
 
 
-creatures_tot = {}
-for i in range(NOMBRE_DE_CREATURES):
-    pos, dist = create_random_creature()
-    creatures_tot[i] = [pos, dist]
+# creatures_tot = {}
+# for i in range(NOMBRE_DE_CREATURES):
+#     pos, dist = create_random_creature()
+#     creatures_tot[i] = [pos, dist]
 
-fig, axes = plt.subplots(5, 5, figsize=(15, 6))
-axes = axes.flatten()
+# fig, axes = plt.subplots(5, 5, figsize=(15, 6))
+# axes = axes.flatten()
 
-for i, ax in enumerate(axes):
-    pos, dist = creatures_tot[i]
-    for j in range(len(pos)):
-        x, y = pos[j]
-        ax.plot(x, y, 'ko')
-        ax.text(x + 1, y + 1, str(j), fontsize=8)
-        for k in range(j+1, len(pos)):
-            if dist[j][k] != 0:
-                x2, y2 = pos[k]
-                ax.plot([x, x2], [y, y2], 'b-')
+# for i, ax in enumerate(axes):
+#     pos, dist = creatures_tot[i]
+#     for j in range(len(pos)):
+#         x, y = pos[j]
+#         ax.plot(x, y, 'ko')
+#         ax.text(x + 1, y + 1, str(j), fontsize=8)
+#         for k in range(j+1, len(pos)):
+#             if dist[j][k] != 0:
+#                 x2, y2 = pos[k]
+#                 ax.plot([x, x2], [y, y2], 'b-')
 
-    ax.set_title(f"Créature {i}")
-    ax.axis('equal')
-    ax.set_xticks([])
-    ax.set_yticks([])
-    ax.grid(True)
+#     ax.set_title(f"Créature {i}")
+#     ax.axis('equal')
+#     ax.set_xticks([])
+#     ax.set_yticks([])
+#     ax.grid(True)
 
-plt.tight_layout()
-plt.show()
+# plt.tight_layout()
+# plt.show()
 
 MIN_TICKS = 50
 MAX_TICKS = 60
@@ -382,6 +382,58 @@ def adn_changement_position_noeud (creature):
     return (positions, connections, forces)
 
 
+def adn_ajout_force(creature):
+    """Ajoute une force supplémentaire à un noeud aléatoire à un moment aléatoire du cycle (un moment où il n'y a pas de force)
+    Prend en argument une créature et renvoie une créature"""
+    forces = np.copy(creature[2])
+    positions, connections = np.copy(creature[0]), np.copy(creature[1])
+
+    noeud = random.randint(0, len(positions) - 1)
+
+    indices = [index for index, vecteur in enumerate(forces[noeud]) if vecteur.all() == 0]
+    indice_changement = random.choice(indices)
+
+    forces[noeud][indice_changement][0] = MIN_FORCE_MUSC + (MAX_FORCE_MUSC - MIN_FORCE_MUSC) * random.random()
+    forces[noeud][indice_changement][1] = MIN_FORCE_MUSC + (MAX_FORCE_MUSC - MIN_FORCE_MUSC) * random.random()
+    
+    return [positions, connections, forces]
+
+def adn_suppression_force(creature):
+    """Enlève une force (non nulle) aléatoire du cycle d'un noeud aléatoire de la créature.
+    Prend en argument une créature et renvoie une créature."""
+    forces = np.copy(creature[2])
+    positions, connections = np.copy(creature[0]), np.copy(creature[1])
+
+    noeud = random.randint(0, len(positions) - 1)
+
+    indices = [index for index, vecteur in enumerate(forces[noeud]) if vecteur.any() != 0]
+    indice_changement = random.choice(indices)
+
+    forces[noeud][indice_changement][0] = 0
+    forces[noeud][indice_changement][1] = 0
+    
+    return [positions, connections, forces]
+
+
+# FONCTION A TESTER
+def adn_duree_cycle_forces(creature):
+    """Modifie la durée du cycle des forces de la créature.
+    V1 : On rajoute x 0 ou on supprime les x derniers temps avec x aléatoire"""
+
+    forces = np.copy(creature[2])
+    x = random.randint(1, 10)
+    sens = random.choice([-1, 1])
+    print(np.shape(forces))
+    if sens == -1 :
+        forces = forces[:,:-x]
+    else :
+        forces = np.concatenate([forces, np.zeros((len(forces), x, 2))], axis = 1)
+    print(np.shape(forces), x, sens)
+
+    return [np.copy(creature[0]), np.copy(creature[1]), forces]
+
+
+
 def afficher_deux_creatures_sur_meme_graphe(ax, positions1, connections1, positions2, connections2):
     """Affiche deux créatures superposées avec couleurs différentes (avant/après mutation)."""
     n1 = len(positions1)
@@ -410,10 +462,10 @@ def afficher_deux_creatures_sur_meme_graphe(ax, positions1, connections1, positi
     ax.set_yticks([])
     ax.grid(True)
 
-# Affichage matplotlib
-fig, ax = plt.subplots(figsize=(8, 8))
-afficher_deux_creatures_sur_meme_graphe(ax, creature_test[0], creature_test[1], creature_test_heritee[0], creature_test_heritee[1])
-plt.show()
+# # Affichage matplotlib
+# fig, ax = plt.subplots(figsize=(8, 8))
+# afficher_deux_creatures_sur_meme_graphe(ax, creature_test[0], creature_test[1], creature_test_heritee[0], creature_test_heritee[1])
+# plt.show()
 
 
 def afficher_creature(ax, positions, connections, color='b', title=""):
@@ -436,50 +488,50 @@ def afficher_creature(ax, positions, connections, color='b', title=""):
 
 
 
-# Nombre aléatoire de ticks par cycle, de mouvements par noeud dans un cycle, et de valeurs de force musculaire par noeud dans un cycle
-for key, value in creatures_tot.items():
-    n = len(value[0]) # Nombre de noeuds
-    ticks = random.randint(MIN_TICKS, MAX_TICKS) # Nombre de ticks pour un cycle
-    force_musc = np.zeros((n,ticks,2))
-    mask = np.zeros((n, ticks), dtype=bool) # On prépare un masque
-    for i in range(n):
-        n_movements = np.random.randint(MIN_N_MOVEMENTS, MAX_N_MOVEMENTS) # Nombre de mouvements dans un cycle pour le noeud i
-        mask[i, np.random.choice(ticks, size=n_movements, replace=False)] = True
-    force_musc[mask] = MIN_FORCE_MUSC + (MAX_FORCE_MUSC - MIN_FORCE_MUSC) * np.random.random((mask.sum(),2))
-    creatures_tot[key].append(force_musc)
+# # Nombre aléatoire de ticks par cycle, de mouvements par noeud dans un cycle, et de valeurs de force musculaire par noeud dans un cycle
+# for key, value in creatures_tot.items():
+#     n = len(value[0]) # Nombre de noeuds
+#     ticks = random.randint(MIN_TICKS, MAX_TICKS) # Nombre de ticks pour un cycle
+#     force_musc = np.zeros((n,ticks,2))
+#     mask = np.zeros((n, ticks), dtype=bool) # On prépare un masque
+#     for i in range(n):
+#         n_movements = np.random.randint(MIN_N_MOVEMENTS, MAX_N_MOVEMENTS) # Nombre de mouvements dans un cycle pour le noeud i
+#         mask[i, np.random.choice(ticks, size=n_movements, replace=False)] = True
+#     force_musc[mask] = MIN_FORCE_MUSC + (MAX_FORCE_MUSC - MIN_FORCE_MUSC) * np.random.random((mask.sum(),2))
+#     creatures_tot[key].append(force_musc)
 
-with open("meilleures_creatures_0.txt", "w", encoding = 'utf-8') as fichier_texte :
-  for key, creature in creatures_tot.items() :
-      fichier_texte.write(f"Créature n° {key} :\n\n")
-      fichier_texte.write(f"Positions des noeuds : \n{creature[0]}\n\n\n")
-      fichier_texte.write(f"Matrice d'adjacence avec distances : \n{creature[1]}\n\n\n")
-      fichier_texte.write(f"Forces par noeud en fonction du temps : \n{creature[2]}\n\n\n")
+# with open("meilleures_creatures_0.txt", "w", encoding = 'utf-8') as fichier_texte :
+#   for key, creature in creatures_tot.items() :
+#       fichier_texte.write(f"Créature n° {key} :\n\n")
+#       fichier_texte.write(f"Positions des noeuds : \n{creature[0]}\n\n\n")
+#       fichier_texte.write(f"Matrice d'adjacence avec distances : \n{creature[1]}\n\n\n")
+#       fichier_texte.write(f"Forces par noeud en fonction du temps : \n{creature[2]}\n\n\n")
 
-with open("meilleures_creatures_0.json", "w", encoding="utf-8") as f:
-    json_creatures = []
-    for key, creature in creatures_tot.items():
-        # Convertir en listes natives
-        pos = creature[0].tolist() if hasattr(creature[0], "tolist") else creature[0]
-        mat = creature[1].tolist() if hasattr(creature[1], "tolist") else creature[1]
-        forc = creature[2].tolist() if hasattr(creature[2], "tolist") else creature[2]
-        json_creatures.append([key, pos, mat, forc])
-    json.dump(json_creatures, f, indent=2)
+# with open("meilleures_creatures_0.json", "w", encoding="utf-8") as f:
+#     json_creatures = []
+#     for key, creature in creatures_tot.items():
+#         # Convertir en listes natives
+#         pos = creature[0].tolist() if hasattr(creature[0], "tolist") else creature[0]
+#         mat = creature[1].tolist() if hasattr(creature[1], "tolist") else creature[1]
+#         forc = creature[2].tolist() if hasattr(creature[2], "tolist") else creature[2]
+#         json_creatures.append([key, pos, mat, forc])
+#     json.dump(json_creatures, f, indent=2)
 
-with open("meilleures_creatures_0.txt") as fichier_texte:
-  print(fichier_texte.read())
+# with open("meilleures_creatures_0.txt") as fichier_texte:
+#   print(fichier_texte.read())
 
 
 
-# pos, dist = create_random_creature()
-# creature_test = [pos, dist]
-# n = len(pos) # Nombre de noeuds
-# ticks = random.randint(MIN_TICKS, MAX_TICKS) # Nombre de ticks pour un cycle
-# force_musc = np.zeros((n,ticks,2))
-# mask = np.zeros((n, ticks), dtype=bool) # On prépare un masque
-# for i in range(n):
-#     n_movements = np.random.randint(MIN_N_MOVEMENTS, MAX_N_MOVEMENTS) # Nombre de mouvements dans un cycle pour le noeud i
-#     mask[i, np.random.choice(ticks, size=n_movements, replace=False)] = True
-# force_musc[mask] = MIN_FORCE_MUSC + (MAX_FORCE_MUSC - MIN_FORCE_MUSC) * np.random.random((mask.sum(),2))
-# creature_test.append(force_musc)
+pos, dist = create_random_creature()
+creature_test = [pos, dist]
+n = len(pos) # Nombre de noeuds
+ticks = random.randint(MIN_TICKS, MAX_TICKS) # Nombre de ticks pour un cycle
+force_musc = np.zeros((n,ticks,2))
+mask = np.zeros((n, ticks), dtype=bool) # On prépare un masque
+for i in range(n):
+    n_movements = np.random.randint(MIN_N_MOVEMENTS, MAX_N_MOVEMENTS) # Nombre de mouvements dans un cycle pour le noeud i
+    mask[i, np.random.choice(ticks, size=n_movements, replace=False)] = True
+force_musc[mask] = MIN_FORCE_MUSC + (MAX_FORCE_MUSC - MIN_FORCE_MUSC) * np.random.random((mask.sum(),2))
+creature_test.append(force_musc)
 
-# creature_test_heritee = adn_longueur_segment(creature_test)
+creature_test_heritee = adn_suppression_force(creature_test)
