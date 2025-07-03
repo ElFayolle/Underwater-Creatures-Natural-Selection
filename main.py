@@ -61,8 +61,8 @@ pos, liste_forces  = calcul_position(meduse)[1], calcul_position(meduse)[2]
 # pos3 = calcul_position(baton)[1]
 t = 0
 
-#+with open("creature_gagnante.json", "r", encoding="utf-8") as f:
-    #pos = np.array(json.load(f)[1])
+"""with open("meilleures_creatures_1.json", "r", encoding="utf-8") as f:
+    pos = np.array(json.load(f)[0][1][0])"""
 
 #Test bulles
 bubbles = instantiate_bubbles(30)
