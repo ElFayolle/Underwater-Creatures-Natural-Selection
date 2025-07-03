@@ -6,13 +6,15 @@ import json
 
 
 LENGTH = 70
-NOMBRE_DE_CREATURES = 100
+NOMBRE_DE_CREATURES = 1000
 MIN_TICKS = 50
 MAX_TICKS = 60
 MIN_N_MOVEMENTS = 10
 MAX_N_MOVEMENTS = 20
 MIN_FORCE_MUSC = -10
 MAX_FORCE_MUSC = 10
+
+
 
 def calcul_distance(point1, point2):
     x1, y1, x2, y2 = point1[0], point1[1], point2[0], point2[1]
@@ -540,6 +542,11 @@ def force_musculaire_aleatoire_noeud(ticks):
     return force_musc_noeud
 
 def generation_initiale():
+    creatures_tot = {}
+    for i in range(NOMBRE_DE_CREATURES):
+        pos, dist = create_random_creature()
+        creatures_tot[i] = [pos, dist]
+
     creatures_tot = creature_force_musculaire_aleatoire(creatures_tot)
 
     with open("generations/meilleures_creatures_0.txt", "w", encoding = 'utf-8') as fichier_texte :
@@ -559,7 +566,7 @@ def generation_initiale():
             json_creatures.append([key, pos, mat, forc])
         json.dump(json_creatures, f, indent=2)
 
-
+generation_initiale()
 
 # pos, dist = create_random_creature()
 # creature_test = [pos, dist]
