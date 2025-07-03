@@ -190,8 +190,7 @@ def adn_longueur_segment(creature):
     #k = random.randint(0, n - 1)
     k = 0
     voisins = [j for j in range(n) if connections[k][j] != 0]
-    if voisins == []:
-        print("euuuh",creature)
+
     i = random.choice(voisins)
 
     # Vecteur du segment ik
@@ -309,13 +308,15 @@ def adn_suppression_segment(creature):
     forces = np.copy(creature[2])
     n = len(positions)
 
+    if n == 3:
+        return creature
+
     candidats = []
 
     for index, sommet in enumerate(connections) :
         if sum([1 for i in sommet if i != 0]) == 1 :
             candidats.append(index)
-    if candidats == []:
-        print("euuuh", creature)
+
     noeud_suppr = random.choice(candidats)
     positions1 = positions[:noeud_suppr]
     positions2 = positions[noeud_suppr + 1:]
@@ -332,7 +333,7 @@ def adn_suppression_segment(creature):
 
     forces1 = forces[:noeud_suppr]
     forces2 = forces[noeud_suppr + 1:]
-    forces = np.concatenate([forces1, forces2], axis = 1)
+    forces = np.concatenate([forces1, forces2], axis = 0)
 
     return ([positions, connections, forces])
 
@@ -504,7 +505,10 @@ def mutation_creature(creature):
         adn_changement_ordre_force,
         adn_ajout_segment,
         adn_suppression_segment,
-        adn_changement_position_noeud
+        adn_changement_position_noeud,
+        adn_duree_cycle_forces,
+        adn_ajout_force,
+        adn_suppression_force
     ]
     mutation = random.choice(liste_mutations)
     creature_modifiee = mutation(creature)
