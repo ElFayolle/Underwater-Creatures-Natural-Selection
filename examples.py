@@ -6,7 +6,11 @@ import json
 
 
 LENGTH = 70
-NOMBRE_DE_CREATURES = 100
+NOMBRE_DE_CREATURES = 30
+
+def calcul_distance(point1, point2):
+    x1, y1, x2, y2 = point1[0], point1[1], point2[0], point2[1]
+    return (math.sqrt((y2 - y1)**2 + (x2 - x1)**2))
 
 def calcul_distance(point1, point2):
     x1, y1, x2, y2 = point1[0], point1[1], point2[0], point2[1]
@@ -138,38 +142,39 @@ def is_valid_creature(positions, distance_matrix):
     return is_symmetric(distance_matrix) and distances_match(positions, distance_matrix)
 
 
+
 creatures_tot = {}
 for i in range(NOMBRE_DE_CREATURES):
     pos, dist = create_random_creature()
     creatures_tot[i] = [pos, dist]
 
-# fig, axes = plt.subplots(5, 5, figsize=(15, 6))
-# axes = axes.flatten()
+fig, axes = plt.subplots(5, 5, figsize=(15, 6))
+axes = axes.flatten()
 
-# for i, ax in enumerate(axes):
-#     pos, dist = creatures_tot[i]
-#     for j in range(len(pos)):
-#         x, y = pos[j]
-#         ax.plot(x, y, 'ko')
-#         ax.text(x + 1, y + 1, str(j), fontsize=8)
-#         for k in range(j+1, len(pos)):
-#             if dist[j][k] != 0:
-#                 x2, y2 = pos[k]
-#                 ax.plot([x, x2], [y, y2], 'b-')
+for i, ax in enumerate(axes):
+    pos, dist = creatures_tot[i]
+    for j in range(len(pos)):
+        x, y = pos[j]
+        ax.plot(x, y, 'ko')
+        ax.text(x + 1, y + 1, str(j), fontsize=8)
+        for k in range(j+1, len(pos)):
+            if dist[j][k] != 0:
+                x2, y2 = pos[k]
+                ax.plot([x, x2], [y, y2], 'b-')
 
-#     ax.set_title(f"Créature {i}")
-#     ax.axis('equal')
-#     ax.set_xticks([])
-#     ax.set_yticks([])
-#     ax.grid(True)
+    ax.set_title(f"Créature {i}")
+    ax.axis('equal')
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.grid(True)
 
-# plt.tight_layout()
-# plt.show()
+plt.tight_layout()
+plt.show()
 
 MIN_TICKS = 50
 MAX_TICKS = 60
-MIN_N_MOVEMENTS = 20
-MAX_N_MOVEMENTS = 30
+MIN_N_MOVEMENTS = 10
+MAX_N_MOVEMENTS = 20
 MIN_FORCE_MUSC = -1000
 MAX_FORCE_MUSC = 1000
 
@@ -443,14 +448,14 @@ for key, value in creatures_tot.items():
     force_musc[mask] = MIN_FORCE_MUSC + (MAX_FORCE_MUSC - MIN_FORCE_MUSC) * np.random.random((mask.sum(),2))
     creatures_tot[key].append(force_musc)
 
-with open("creatures_text.txt", "w", encoding = 'utf-8') as fichier_texte :
+with open("meilleures_creatures_0.txt", "w", encoding = 'utf-8') as fichier_texte :
   for key, creature in creatures_tot.items() :
       fichier_texte.write(f"Créature n° {key} :\n\n")
       fichier_texte.write(f"Positions des noeuds : \n{creature[0]}\n\n\n")
       fichier_texte.write(f"Matrice d'adjacence avec distances : \n{creature[1]}\n\n\n")
       fichier_texte.write(f"Forces par noeud en fonction du temps : \n{creature[2]}\n\n\n")
 
-with open("creatures.json", "w", encoding="utf-8") as f:
+with open("meilleures_creatures_0.json", "w", encoding="utf-8") as f:
     json_creatures = []
     for key, creature in creatures_tot.items():
         # Convertir en listes natives
@@ -460,7 +465,7 @@ with open("creatures.json", "w", encoding="utf-8") as f:
         json_creatures.append([key, pos, mat, forc])
     json.dump(json_creatures, f, indent=2)
 
-with open("creatures_text.txt") as fichier_texte:
+with open("meilleures_creatures_0.txt") as fichier_texte:
   print(fichier_texte.read())
 
 

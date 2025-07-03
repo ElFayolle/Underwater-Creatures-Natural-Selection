@@ -1,0 +1,45 @@
+Creature 0
+Score : 2411.0
+
+Creature 4
+Score : 2032.0
+
+Creature 15
+Score : 1977.0
+
+Creature 19
+Score : 1689.0
+
+Creature 20
+Score : 1673.0
+
+Creature 16
+Score : 1549.0
+
+Creature 10
+Score : 1492.0
+
+Creature 18
+Score : 1389.0
+
+Creature 13
+Score : 1361.0
+
+Creature 14
+Score : 1328.0
+
+Creature 24
+Score : 1291.0
+
+Creature 1
+Score : 1285.0
+
+Creature 6
+Score : 1205.0
+
+Creature 9
+Score : 1188.0
+
+Creature 22
+Score : 1184.0
+
