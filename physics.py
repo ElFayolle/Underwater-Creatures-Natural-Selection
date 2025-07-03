@@ -217,6 +217,7 @@ def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
         v[:, t] = v[:, t-1] + dt * a[:, t-1]
         xy[:, t] = contrainte_longueurs(xy, l0, matrice_adjacence, t)
         xy[:, t] = xy[:, t-1] + dt * v[:, t-1]
-        
+    
+    score = calcul_score(energie_cinetique(v, n_interval_time-1), distance(xy, n_interval_time-1), n_nodes)
 
-    return (v, xy, liste_forces)
+    return (v, xy.tolist(), liste_forces, score)

@@ -6,7 +6,7 @@ import json
 
 
 LENGTH = 70
-NOMBRE_DE_CREATURES = 100
+NOMBRE_DE_CREATURES = 30
 
 def point_exists(new_pos, positions, tol=1e-6):
     """Fonction qui vérifie si le point new_pos recouvre un point déjà existant (vrai si recouvrement)"""
@@ -339,14 +339,14 @@ for key, value in creatures_tot.items():
     force_musc[mask] = MIN_FORCE_MUSC + (MAX_FORCE_MUSC - MIN_FORCE_MUSC) * np.random.random((mask.sum(),2))
     creatures_tot[key].append(force_musc)
 
-with open("creatures_text.txt", "w", encoding = 'utf-8') as fichier_texte :
+with open("meilleures_creatures_0.txt", "w", encoding = 'utf-8') as fichier_texte :
   for key, creature in creatures_tot.items() :
       fichier_texte.write(f"Créature n° {key} :\n\n")
       fichier_texte.write(f"Positions des noeuds : \n{creature[0]}\n\n\n")
       fichier_texte.write(f"Matrice d'adjacence avec distances : \n{creature[1]}\n\n\n")
       fichier_texte.write(f"Forces par noeud en fonction du temps : \n{creature[2]}\n\n\n")
 
-with open("creatures.json", "w", encoding="utf-8") as f:
+with open("meilleures_creatures_0.json", "w", encoding="utf-8") as f:
     json_creatures = []
     for key, creature in creatures_tot.items():
         # Convertir en listes natives
@@ -356,5 +356,5 @@ with open("creatures.json", "w", encoding="utf-8") as f:
         json_creatures.append([key, pos, mat, forc])
     json.dump(json_creatures, f, indent=2)
 
-with open("creatures_text.txt") as fichier_texte:
+with open("meilleures_creatures_0.txt") as fichier_texte:
   print(fichier_texte.read())
