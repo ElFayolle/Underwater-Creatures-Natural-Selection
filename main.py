@@ -154,7 +154,7 @@ def force_rappel_amortie(positions, vitesses, l0, t, k=10e-3, c=10):
     F_total[l0 == 0] = 0.0
     return F_total.sum(axis=0)
 
-"""
+
 
 def force_rappel(positions,l0,t):  #Renvoie la force de rappel totale qui s'applique sur chaque noeud d'une créature
     #positions: (n_nodes, t, 2) # Positions des noeuds
@@ -189,7 +189,7 @@ def force_rappel(positions,l0,t):  #Renvoie la force de rappel totale qui s'appl
     
     return forces
 
-"""
+
 def normales_locales(position,neighbours,t)->dict:
     d = {}
     for i in range(len(position)):
@@ -315,10 +315,13 @@ def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
     for t in range(1,int(n_interval_time)):
 
         #calcul de la force de frottement liée à l'eau
-        f_eau[:,t] = frottement_eau_globale(v,matrice_adjacence,xy,t-1,1)
+        f_eau[:,t] = frottement_eau_globale(v,matrice_adjacence,xy,t-1,10)
 
-        #force de rappel en chacun des sommets
-        f_rap[:,t] = force_rappel_amortie(xy, v, l0, t-1) 
+        #force de rappel en chacun des sommets (MAGIE NOIRE ALTERNANCE AMORTIE PAS AMORTIE)
+        if t%2 ==0:
+            f_rap[:,t] = force_rappel(xy, l0, t-1)
+        else:
+             f_rap[:,t] = force_rappel_amortie(xy,v, l0, t-1)
 
         #force musculaire efficace
         #f_musc[:,t] = f_musc_cohérente(matrice_adjacence,xy,f_musc,t-1)
@@ -332,6 +335,7 @@ def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
         #Calcul de la vitesse et position au temps t
         v[:, t] = v[:, t-1] + dt * a[:, t-1]
         xy[:, t] = xy[:, t-1] + dt * v[:, t-1]
+        
     
     #Calcul de l'énergie cinétique et de la distance parcourue
     energie = energie_cinetique(v, n_interval_time-1)
@@ -475,7 +479,7 @@ med2 = [pos2, matrice_adjacence]
                #   [[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15][0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]]]
                  #
 
-force_initial = ([[[0,-15]], [[0,0]], [[0,0]]])
+force_initial = ([[[0,+150]], [[0,0]], [[0,+150]]])
 force_initial2 = ([[[0,-15,]],[[0,0]]])
 
 
