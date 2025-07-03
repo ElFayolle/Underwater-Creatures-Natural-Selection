@@ -7,6 +7,12 @@ import json
 
 LENGTH = 70
 NOMBRE_DE_CREATURES = 100
+MIN_TICKS = 50
+MAX_TICKS = 60
+MIN_N_MOVEMENTS = 10
+MAX_N_MOVEMENTS = 20
+MIN_FORCE_MUSC = -10
+MAX_FORCE_MUSC = 10
 
 def calcul_distance(point1, point2):
     x1, y1, x2, y2 = point1[0], point1[1], point2[0], point2[1]
@@ -171,12 +177,7 @@ def is_valid_creature(positions, distance_matrix):
 # plt.tight_layout()
 # plt.show()
 
-MIN_TICKS = 50
-MAX_TICKS = 60
-MIN_N_MOVEMENTS = 10
-MAX_N_MOVEMENTS = 20
-MIN_FORCE_MUSC = -10
-MAX_FORCE_MUSC = 10
+
 
 
 def adn_longueur_segment(creature):
