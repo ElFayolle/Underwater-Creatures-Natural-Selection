@@ -55,7 +55,7 @@ def contrainte_longueurs(xy, l0, matrice_adjacence, t):
     Ajuste xy_t (positions au temps t) pour que la distance entre chaque paire de noeuds connectés soit égale à l0.
     Utilise une correction simple itérative.
     """
-    xy_t = xy[:, t-1]
+    xy_t = xy[:, t]
     n = len(xy_t)
     #centre_avant = centre_de_masse(xy, t-1)  # Centre de masse avant ajustement
     for _ in range(5):  # nombre d'itérations de correction (à ajuster)
@@ -70,11 +70,13 @@ def contrainte_longueurs(xy, l0, matrice_adjacence, t):
                     correction = (diff / 2) * (vec / dist)
                     xy_t[i] += correction
                     xy_t[j] -= correction
+                        
     # Réajustiment du centre de masse pour éviter les dérives
     #xy[:,t] = xy_t
-    # centre_apres = centre_de_masse(xy, t)
-    # xy_t += centre_avant - centre_apres  # Recentre les positions
+    #centre_apres = centre_de_masse(xy, t)
+    #xy_t += centre_avant - centre_apres  # Recentre les positions
     return xy_t
+
 
 def frottement_eau_globale(vitesse:np.ndarray,neighbours:np.ndarray,position:np.ndarray,t,alpha:float = 1):
     l=len(position)
@@ -87,20 +89,18 @@ def frottement_eau_globale(vitesse:np.ndarray,neighbours:np.ndarray,position:np.
         for index in voisins:
             BA = -position[index,t]+position[i,t] # Vecteur BA avec A le premier sommet 
             norm = np.linalg.norm(BA)
-            if np.linalg.norm(v_moy) >1e-6:
-                v_unitaire = v_moy/np.linalg.norm(v_moy)
-                if norm>1e-6:
-                # Coordonnées locales 
-                    cos_theta = np.dot(BA,np.array([1,0]))/np.linalg.norm(BA)
-                    sin_theta = np.dot(BA,np.array([0,1]))/np.linalg.norm(BA)
-                    normale_locale = +cos_theta*np.array([0,1]) - sin_theta*np.array([1,0])
-                    # print(f"{index},vun:{v_unitaire},vre:{v_reel,norm}")
-                    section_efficace[index] = (norm*np.abs(np.dot(v_unitaire,normale_locale)))
-                
-                    if np.sum(section_efficace)>1e-6:
-                        F_visq[index] += -alpha*v_moy*np.linalg.norm(v_moy)*section_efficace[index]/np.sum(section_efficace)   
-                        #print("prour")
-                        #print(F_visq[index],np.sum(section_efficace),section_efficace[index],norm,cos_theta) 
+            if norm>1e-6:
+            # Coordonnées locales 
+                cos_theta = np.dot(BA,np.array([1,0]))/np.linalg.norm(BA)
+                sin_theta = np.dot(BA,np.array([0,1]))/np.linalg.norm(BA)
+                normale_locale = +cos_theta*np.array([0,1]) - sin_theta*np.array([1,0])
+                # print(f"{index},vun:{v_unitaire},vre:{v_reel,norm}")
+                section_efficace[index] = (norm*np.abs(np.dot(vitesse[index,t],normale_locale)))
+            
+                if np.sum(section_efficace)>1e-6:
+                    F_visq[index] += -alpha*vitesse[index,t]*np.linalg.norm(vitesse[index,t])*section_efficace[index]/np.sum(section_efficace)   
+                    #print("prour")
+                    #print(F_visq[index],np.sum(section_efficace),section_efficace[index],norm,cos_theta) 
 
     return F_visq
 
@@ -150,7 +150,7 @@ def action_reaction(force_musc, pos, l0):
                 force_reaction[i] += -force_musc[j]
     return force_reaction
 
-def orthogonalise_force(force_musc, pos, l0):
+def orthogonalise_force(force_musc, pos, l0,t):
     """
     Force musculaire orthogonalisée pour chaque noeud d'une créature.
     force_musc: (n_nodes, n_interval_time, 2)
@@ -172,6 +172,22 @@ def orthogonalise_force(force_musc, pos, l0):
                 force_orthogonalisee[j] += np.dot(force_musc[j], unit_vec) * unit_vec
 
     return force_orthogonalisee
+
+def orthogonalise_force2(force_musc, pos, l0,t):
+    """
+    Force musculaire orthogonalisée pour chaque noeud d'une créature.
+    force_musc: (n_nodes, n_interval_time, 2)
+    pos: (n_nodes, n_interval_time, 2)
+    l0: (n_nodes, n_nodes)
+    retourne : force_musc orthogonalisée
+    """
+    n_nodes = len(pos)
+    force_orthogonalisee = np.zeros((n_nodes,2), dtype=np.float64) 
+    normales = somme_normales_locales(pos,l0,t-1)  #t-1 car la position d'avant définit la normale pour les projections de force à temps t
+    for node, normale in enumerate(normales):
+        force_orthogonalisee[node] = np.dot(force_musc[node,t], normale) * normale
+    return force_orthogonalisee
+ 
 
 
 def pfd(liste_force, t, mass=1):
@@ -226,7 +242,7 @@ def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
         f_eau[:,t] = frottement_global(v,matrice_adjacence,xy,t-1) #np.array([[10,10]for _ in range(n_nodes)]) 
         #f_visc[:,t] = -gamma*v[:,t]
         #force de rappel en chacun des sommets
-        #f_rap[:,t] = np.array([[1,1]*n_nodes]) #force_rappel_amortie(xy, v, l0, t-1) 
+        #f_rap[:,t] = 0 #force_rappel_amortie(xy, v, l0, t-1) 
         force_reaction[:,t] = action_reaction(f_musc[:,t], xy[:,t], l0)   
         #Array rassemblant les différentes forces
         #f_musc[:,t] = orthogonalise_force(f_musc[:,t], xy[:,t], l0)
@@ -237,10 +253,9 @@ def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
         
         #Calcul de la vitesse et position au temps t
         v[:, t] = v[:, t-1] + dt * a[:, t-1]
+        xy[:, t] = xy[:,t-1] + dt * v[:, t-1]
         xy[:, t] = contrainte_longueurs(xy, l0, matrice_adjacence, t)
-        xy[:, t] = xy[:, t-1] + dt * v[:, t-1]
-        
 
-    return (v, xy, liste_forces)
+    return (v, xy, liste_forces, score)
 
 
