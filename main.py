@@ -100,6 +100,8 @@ def nombre_de_voisins(k, i, creatures):
 
     return F_visq"""
 
+
+
 def frottement_eau_globale(vitesse:np.ndarray,neighbours:np.ndarray,position:np.ndarray,t,alpha:float = 1):
     l=len(position)
     F_visq = np.zeros((l,2))
@@ -128,7 +130,7 @@ def frottement_eau_globale(vitesse:np.ndarray,neighbours:np.ndarray,position:np.
 
     return F_visq
 
-def force_rappel_amortie(positions, vitesses, l0, t, k=10e-3, c=10):
+def force_rappel_amortie(positions, vitesses, l0, t, k=1, c=0.1):
     """
     Ajoute un amortissement proportionnel à la vitesse relative le long de l’axe du ressort
     """
@@ -238,16 +240,22 @@ def force_musc_projetee(position,neighbours,f_musc,t):
         if np.linalg.norm(norm_locales[i]) < eps:
             f_musc_proj[i] = np.array([0, 0])  # Si la normale est nulle, pas de force projetée
         else:
-            f_musc_proj[i] = np.dot(f_musc_t[i], norm_locales[i]) * norm_locales[i] / (np.linalg.norm(norm_locales[i])**2)
+            f_musc_proj[i] = np.dot(f_musc_t[i], norm_locales[i]) * norm_locales[i] 
     return f_musc_proj
 
 
 def somme_normales_locales(position,neighbours,t):
     dico_normales = normales_locales(position, neighbours, t)
     normales_totales = np.zeros((len(position), 2))
+    eps=1e-10
     for couple, normale in dico_normales.items():
         normales_totales[couple[0]] += normale
         normales_totales[couple[1]] += normale
+    for i,normale in enumerate(normales_totales):
+        if np.linalg.norm(normale)>eps:
+            normales_totales[i] = normale/np.linalg.norm(normale)
+        else:
+            normales_totales[i] = np.array([0,0])
     return normales_totales
 
 def normales_locales(position,neighbours,t)->dict:
@@ -385,15 +393,30 @@ def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
     for t in range(1,int(n_interval_time)):
 
         #calcul de la force de frottement liée à l'eau
-        f_eau[:,t] = frottement_eau_globale(v,matrice_adjacence,xy,t-1,1)
+<<<<<<< HEAD
+        f_eau[:,t] = frottement_eau_3(v,matrice_adjacence,xy,t-1,10)
+=======
+<<<<<<< HEAD
+        f_eau[:,t] = 0 #frottement_eau_globale(v,matrice_adjacence,xy,t-1,1)
+=======
+        f_eau[:,t] = frottement_eau_globale(v,matrice_adjacence,xy,t-1,10)
+>>>>>>> a95a4b15e819e330ee745cd766f5573cc87e67ac
+>>>>>>> 31afbc90f15d993a12c01913f5d6771690274ce7
 
         #force de rappel en chacun des sommets
         f_rap[:,t] = force_rappel_amortie(xy, v, l0, t-1)
 
         f_musc_proj[:,t] = force_musc_projetee(xy, matrice_adjacence, f_musc, t-1) 
+<<<<<<< HEAD
+        #force_reaction[:,t] = action_reaction(f_musc[:,t], xy[:,t], l0)  
+=======
         force_reaction[:,t] = action_reaction(f_musc[:,t], xy[:,t], l0)  
+<<<<<<< HEAD
+=======
+>>>>>>> 31afbc90f15d993a12c01913f5d6771690274ce7
         #print(np.shape(f_rap))
         #print(np.shape(force_reaction)) 
+>>>>>>> a95a4b15e819e330ee745cd766f5573cc87e67ac
         #Array rassemblant les différentes forces
         #print(np.linalg.norm(f_eau[:,t]),np.linalg.norm(f_rap[:,t]))
         liste_forces = np.array([f_rap, f_eau,f_musc_proj, force_reaction])  # Liste des forces appliquées à chaque noeud
@@ -552,7 +575,7 @@ med2 = [pos3, matrice_adjacence]
                #   [[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15][0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]]]
                  #
 
-force_initial = ([[[0,-15]], [[0,0]], [[0,0]]])
+force_initial = ([[[0,+150]], [[0,0]], [[0,+150]]])
 force_initial2 = ([[[0,-15,]],[[0,0]]])
 
 
@@ -573,8 +596,8 @@ pos2 = calcul_position(med2)[1]
 pos3 = calcul_position(baton)[1]
 t = 0
 
-with open("creature_gagnante.json", "r", encoding="utf-8") as f:
-    pos = np.array(json.load(f)[1])
+#with open("creature_gagnante.json", "r", encoding="utf-8") as f:
+    #pos = np.array(json.load(f)[1])
 
 #Test bulles
 bubbles = instantiate_bubbles(30)

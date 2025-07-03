@@ -98,12 +98,14 @@ def force_rappel_amortie(positions, vitesses, l0, t, k=10e-3, c=10):
     F_total[l0 == 0] = 0.0
     return F_total.sum(axis=0)
 
-def contrainte_longueurs(xy_t, l0, matrice_adjacence):
+def contrainte_longueurs(xy, l0, matrice_adjacence, t):
     """
     Ajuste xy_t (positions au temps t) pour que la distance entre chaque paire de noeuds connectés soit égale à l0.
     Utilise une correction simple itérative.
     """
+    xy_t = xy[:, t-1]
     n = len(xy_t)
+    centre_avant = centre_de_masse(xy, t-1)  # Centre de masse avant ajustement
     for _ in range(5):  # nombre d'itérations de correction (à ajuster)
         for i in range(n):
             for j in range(i+1, n):
@@ -116,7 +118,54 @@ def contrainte_longueurs(xy_t, l0, matrice_adjacence):
                     correction = (diff / 2) * (vec / dist)
                     xy_t[i] += correction
                     xy_t[j] -= correction
+    # Réajustiment du centre de masse pour éviter les dérives
+    xy[:,t] = xy_t
+    centre_apres = centre_de_masse(xy, t)
+    xy_t += centre_avant - centre_apres  # Recentre les positions
     return xy_t
+
+def frottement_eau_3(vitesse:np.ndarray,neighbours:np.ndarray,position:np.ndarray,t,alpha:float = 1):
+    l=len(position)
+    F_visq = np.zeros((l,2))
+    v_moy = vitesse_moyenne(vitesse,t)
+
+    norm_locales = somme_normales_locales(position,neighbours,t)
+    for node, normale in enumerate(norm_locales):
+        if np.linalg.norm(normale) > 1e-10:
+            F_visq[node] = -alpha*(vitesse[node,t]-v_moy)*np.dot((vitesse[node,t]-v_moy),normale)
+            #print(f"à l'aide: {norm_locales},{vitesse[node,t]},{v_moy},{F_visq}")
+    return F_visq  
+
+
+def somme_normales_locales(position,neighbours,t):
+    dico_normales = normales_locales(position, neighbours, t)
+    normales_totales = np.zeros((len(position), 2))
+    eps=1e-10
+    for couple, normale in dico_normales.items():
+        normales_totales[couple[0]] += normale
+        normales_totales[couple[1]] += normale
+    for i,normale in enumerate(normales_totales):
+        if np.linalg.norm(normale)>eps:
+            normales_totales[i] = normale/np.linalg.norm(normale)
+        else:
+            normales_totales[i] = np.array([0,0])
+    return normales_totales
+
+def normales_locales(position,neighbours,t)->dict:
+    d = {}
+    for i in range(len(position)):
+        voisins = [index for index, e in enumerate(neighbours[i],start=0) if e != 0]
+        for index in voisins:
+            if ((index,i) in d) ^ ((i,index) not in d): 
+                BA = -position[index,t]+position[i,t] # Vecteur BA avec A le premier sommet 
+                norm = np.linalg.norm(BA)
+                if norm>1e-6:
+                # Coordonnées locales 
+                    cos_theta = np.dot(BA,np.array([1,0]))/np.linalg.norm(BA)
+                    sin_theta = np.dot(BA,np.array([0,1]))/np.linalg.norm(BA)
+                    normale_locale = +cos_theta*np.array([0,1]) - sin_theta*np.array([1,0])
+                    d[(index,i)] = normale_locale
+    return d  
 
 """
 
@@ -209,6 +258,8 @@ def action_reaction(force_musc, pos, l0):
                 force_reaction[i] += -force_musc[j]
     return force_reaction
 
+print( "test = ", action_reaction(np.array([[-1,0],[0,0], [-1,0]]), np.array([[0,0], [2,2], [2, 0]]), np.array([[0,1,0],[1,0, 1],[0,1,0]])) )  # Exemple de force de réaction pour 2 noeuds
+
 
 def orthogonalise_force(force_musc, pos, l0):
     """
@@ -236,12 +287,7 @@ def orthogonalise_force(force_musc, pos, l0):
 print(orthogonalise_force(np.array([[0,0],[1,2]]), np.array([[0,0], [0,2]]), np.array([[0,1],[1,0]])))  # Exemple de force musculaire orthogonalisée pour 2 noeuds
 #calcul_position(np.Array()#cycle de forces de la créature, float #pas de temps, float #temps de simul, int #nombre de noeuds) -> vitesse et position 
 def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
-
-
-
-    import time
-
-    time.sleep(12)
+   
     pos_init, matrice_adjacence, f_musc_periode = creature[0], creature[1], creature[2]
     n_nodes = len(pos_init)  # Nombre de noeuds dans la créature
     l0 = neighbors(pos_init, matrice_adjacence)
@@ -279,23 +325,26 @@ def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
     #Calcul itératif des forces/vitesses et positions
     for t in range(1,int(n_interval_time)):
         #calcul de la force de frottement liée à l'eau
-        f_eau[:,t] = frottement_eau(v,matrice_adjacence,xy,t)
+
+        f_eau[:,t] = frottement_eau_globale(v,matrice_adjacence,xy,t)
         #f_visc[:,t] = -gamma*v[:,t]
         #force de rappel en chacun des sommets
-        f_rap[:,t] = force_rappel_amortie(xy, v, l0, t-1) 
+        f_rap[:,t] = 0 #force_rappel_amortie(xy, v, l0, t-1) 
         force_reaction[:,t] = action_reaction(f_musc[:,t], xy[:,t], l0)   
         #Array rassemblant les différentes forces
-        
-        f_musc[:,t] = orthogonalise_force(f_musc[:,t], xy[:,t], l0)
-        liste_forces = np.array([f_rap, force_reaction,f_musc])
-        
+        #f_musc[:,t] = orthogonalise_force(f_musc[:,t], xy[:,t], l0)
+        liste_forces = np.array([f_rap, force_reaction ,f_musc])
+
         #Somme des forces et calcul du PFD au temps t
         a[:,t] = pfd(liste_forces, t)
         
         #Calcul de la vitesse et position au temps t
         v[:, t] = v[:, t-1] + dt * a[:, t-1]
+        xy[:, t] = contrainte_longueurs(xy, l0, matrice_adjacence, t)
         xy[:, t] = xy[:, t-1] + dt * v[:, t-1]
-    return (v, xy)
+        
+
+    return (v, xy, liste_forces)
 
 
 #Fonction qui calcule le "score" de chaque créature - amené à changer.
@@ -369,13 +418,20 @@ def see_creatures(event:pygame.event):
                 CURRENT_CREATURE+=1
     return None
 
-def draw_creature(pos,t, offset):
+def draw_creature(pos, liste_forces, t, offset):
     """Dessinne une créature à un temps t"""
+    liste_forces = liste_forces/3
     for i in range(t):
         pygame.draw.circle(screen,(20,60,120),centre_de_masse(pos,i)+offset,2 )
     for index in range(1,len(pos)):
         pygame.draw.line(screen,(25, 30, 70),pos[index-1,t]+offset,pos[index,t]+offset,4)
         pygame.draw.circle(screen,(100,189,255),pos[index-1,t]+offset,5)
+        #draw forces :  
+
+    for index in range(len(pos)):
+        colours_force = [(255,0,0),(0,255,0),(0,0,255)]
+        for i in range(len(liste_forces)):
+            pygame.draw.line(screen,colours_force[i],pos[index-1,t]+offset,pos[index-1,t]+liste_forces[i][index-1,t]*10+offset,2)        
     pygame.draw.circle(screen,(100,189,255),pos[-1,t]+offset,5)
     pygame.draw.circle(screen,(255,0,0),centre_de_masse(pos,0)+offset,3)
     return None
@@ -436,7 +492,7 @@ med2 = [pos3, matrice_adjacence]
                #   [[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15][0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]]]
                  #
 
-force_initial = ([[[0,0]], [[0,-15]], [[0,0]]])
+force_initial = ([[[10,0]], [[0,0]], [[0,15]]])
 
 
 meduse = [pos, matrice_adjacence,force_initial]
@@ -452,6 +508,7 @@ baton = [pos, matrice_adjacence, force_initial]
 
 forces = []
 pos  = calcul_position(meduse)[1]
+force = calcul_position(meduse)[2]
 pos2 = calcul_position(med2)[1]
 t = 0
 
@@ -472,10 +529,15 @@ while running and t < DUREE_SIM/(1/60):
     barycentre = centre_de_masse(pos, t)
     offset = get_offset(centre_de_masse(position_tot[CURRENT_CREATURE], t), WIDTH,HEIGHT)
     draw_bubbles(bubbles,offset,barycentre,0,t)
-    draw_creature(pos,t, offset)
-    draw_creature(pos2,t,offset)
+    draw_creature(pos, force,t, offset)
+    #draw_creature(pos2,t,offset)
     font=pygame.font.Font(None, 24)
     text = font.render("distance : " + str(distance(pos,t)),1,(255,255,255))
+    coulours_force = [(255,0,0),(0,255,0),(0,0,255)]
+    force_name = ["force rappel", "force de réaction", "force musculaire"]
+    for i in range(len(coulours_force)):
+        text_force = font.render(force_name[i],1,coulours_force[i])
+        screen.blit(text_force, (10, 30 + i * 20))
     screen.blit(text, (10, 10))
     
     pygame.display.flip()
