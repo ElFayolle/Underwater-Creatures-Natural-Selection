@@ -57,7 +57,7 @@ def contrainte_longueurs(xy, l0, matrice_adjacence, t):
     """
     xy_t = xy[:, t-1]
     n = len(xy_t)
-    centre_avant = centre_de_masse(xy, t-1)  # Centre de masse avant ajustement
+    #centre_avant = centre_de_masse(xy, t-1)  # Centre de masse avant ajustement
     for _ in range(5):  # nombre d'itérations de correction (à ajuster)
         for i in range(n):
             for j in range(i+1, n):
@@ -71,9 +71,9 @@ def contrainte_longueurs(xy, l0, matrice_adjacence, t):
                     xy_t[i] += correction
                     xy_t[j] -= correction
     # Réajustiment du centre de masse pour éviter les dérives
-    xy[:,t] = xy_t
-    centre_apres = centre_de_masse(xy, t)
-    xy_t += centre_avant - centre_apres  # Recentre les positions
+    #xy[:,t] = xy_t
+    # centre_apres = centre_de_masse(xy, t)
+    # xy_t += centre_avant - centre_apres  # Recentre les positions
     return xy_t
 
 def frottement_eau_globale(vitesse:np.ndarray,neighbours:np.ndarray,position:np.ndarray,t,alpha:float = 1):
@@ -104,17 +104,39 @@ def frottement_eau_globale(vitesse:np.ndarray,neighbours:np.ndarray,position:np.
 
     return F_visq
 
-def frottement_eau_3(vitesse:np.ndarray,neighbours:np.ndarray,position:np.ndarray,t,alpha:float = 1):
-    l=len(position)
-    F_visq = np.zeros((l,2))
-    v_moy = vitesse_moyenne(vitesse,t)
+def frottement_eau_3(vitesse: np.ndarray, neighbours: np.ndarray, position: np.ndarray, t, alpha: float = 1):
+    l = len(position)
+    F_visq = np.zeros((l, 2))
+    v_moy = vitesse_moyenne(vitesse, t)
 
-    norm_locales = somme_normales_locales(position,neighbours,t)
+    norm_locales = somme_normales_locales(position, neighbours, t)
     for node, normale in enumerate(norm_locales):
-        if np.linalg.norm(normale) > 1e-10:
-            F_visq[node] = -alpha*(vitesse[node,t]-v_moy)*np.dot((vitesse[node,t]-v_moy),normale)
-            #print(f"à l'aide: {norm_locales},{vitesse[node,t]},{v_moy},{F_visq}")
-    return F_visq  
+        norm_normale = np.linalg.norm(normale)
+        if norm_normale > 1e-10:
+            v_rel = vitesse[node, t] - v_moy
+            v_normale = np.dot(v_rel, normale) / (norm_normale**2) * normale
+            F_visq[node] = -alpha * v_normale
+    return F_visq
+
+
+def frottement_global(vitesse: np.ndarray, neighbours: np.ndarray, position: np.ndarray, t, alpha: float = 50):
+    n_nodes = len(position)
+    F_visc = np.zeros((n_nodes, 2))
+    for i in range(n_nodes):
+        if neighbours[i].sum() == 1:
+            if np.linalg.norm(vitesse[i, t]) > 1e-6 and np.linalg.norm(vitesse_moyenne(vitesse, t)) > 1e-6:
+                
+                # Calcul de la force de frottement
+                #moyenne glissante des angles sur les 50 derniers angles :
+                moyenne_glissante_angle = np.mean([np.sin(np.abs(np.arccos(np.clip(np.dot(vitesse[i, t], vitesse_moyenne(vitesse, t)), -1.0, 1.0)))) for t in range(max(0, t-60), t+1)])
+                maximum = max(np.sin(np.abs(np.arccos(np.clip(np.dot(vitesse[i, t], vitesse_moyenne(vitesse, t)), -1.0, 1.0)))) for t in range(max(0, t-30), t+1))
+                F_visc[i] = -alpha * vitesse[i, t] * moyenne_glissante_angle
+            else:
+                F_visc[i] = -alpha * vitesse[i, t] 
+        else:
+            F_visc[i] = 0
+    return F_visc
+
 
 def action_reaction(force_musc, pos, l0):
     """
@@ -201,14 +223,14 @@ def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
     for t in range(1,int(n_interval_time)):
         #calcul de la force de frottement liée à l'eau
 
-        f_eau[:,t] = frottement_eau_3(v,matrice_adjacence,xy,t)
+        f_eau[:,t] = frottement_global(v,matrice_adjacence,xy,t-1) #np.array([[10,10]for _ in range(n_nodes)]) 
         #f_visc[:,t] = -gamma*v[:,t]
         #force de rappel en chacun des sommets
-        f_rap[:,t] = 0 #force_rappel_amortie(xy, v, l0, t-1) 
+        #f_rap[:,t] = np.array([[1,1]*n_nodes]) #force_rappel_amortie(xy, v, l0, t-1) 
         force_reaction[:,t] = action_reaction(f_musc[:,t], xy[:,t], l0)   
         #Array rassemblant les différentes forces
         #f_musc[:,t] = orthogonalise_force(f_musc[:,t], xy[:,t], l0)
-        liste_forces = np.array([f_rap, force_reaction ,f_musc])
+        liste_forces = np.array([f_eau, force_reaction ,f_musc])
 
         #Somme des forces et calcul du PFD au temps t
         a[:,t] = pfd(liste_forces, t)
@@ -220,3 +242,5 @@ def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
         
 
     return (v, xy, liste_forces)
+
+
