@@ -5,7 +5,7 @@ import json
 pygame.init()
 # Set up the display
 WIDTH, HEIGHT = 800, 600
-DUREE_SIM = 100  # Durée de la simulation en secondes
+DUREE_SIM = 10  # Durée de la simulation en secondes
 CURRENT_CREATURE = 0
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Natural Selection Simulation")
@@ -204,6 +204,52 @@ def force_rappel(positions,l0,t):  #Renvoie la force de rappel totale qui s'appl
     return forces
 
 """
+
+def force_musc_projetee_copilot(position,neighbours,f_musc,t):
+    """
+    Calcule la force musculaire projetée sur les normales aux segments des créatures
+    position: (n_nodes, n_interval_time, 2) # Positions des noeuds
+    neighbours: (n_nodes, n_nodes) # Matrice d'adjacence des voisins
+    f_musc: (n_nodes, n_interval_time, 2) # Forces musculaires
+    t: int # Temps
+    retourne : forces musculaires projetées sur les normales aux segments, shape (n_nodes, 2)
+    """
+    l = len(position)
+    f_musc_proj = np.zeros((l, 2))
+    for i in range(l):
+        voisins = [index for index, e in enumerate(neighbours[i]) if e != 0]
+        for index in voisins:
+            BA = -position[index, t] + position[i, t]  # Vecteur BA avec A le premier sommet
+            norm = np.linalg.norm(BA)
+            if norm > 1e-6:  # Si le segment est minuscule, pas de force
+                cos_theta = np.dot(BA, np.array([1, 0])) / np.linalg.norm(BA)
+                sin_theta = np.dot(BA, np.array([0, 1])) / np.linalg.norm(BA)
+                u_theta = +cos_theta * np.array([0, 1]) - sin_theta * np.array([1, 0])
+                f_musc_proj[i] += f_musc[index, t] * np.dot(f_musc[index, t], u_theta) * u_theta
+    return f_musc_proj
+
+def force_musc_projetee(position,neighbours,f_musc,t):
+    eps = 1e-10
+    n_nodes = len(position)
+    norm_locales = somme_normales_locales(position,neighbours,t)
+    f_musc_t = f_musc[:, t]  # Forces musculaires au temps t
+    f_musc_proj = np.zeros((n_nodes, 2))
+    for i in range(n_nodes):
+        if np.linalg.norm(norm_locales[i]) < eps:
+            f_musc_proj[i] = np.array([0, 0])  # Si la normale est nulle, pas de force projetée
+        else:
+            f_musc_proj[i] = np.dot(f_musc_t[i], norm_locales[i]) * norm_locales[i] / (np.linalg.norm(norm_locales[i])**2)
+    return f_musc_proj
+
+
+def somme_normales_locales(position,neighbours,t):
+    dico_normales = normales_locales(position, neighbours, t)
+    normales_totales = np.zeros((len(position), 2))
+    for couple, normale in dico_normales.items():
+        normales_totales[couple[0]] += normale
+        normales_totales[couple[1]] += normale
+    return normales_totales
+
 def normales_locales(position,neighbours,t)->dict:
     d = {}
     for i in range(len(position)):
@@ -219,6 +265,12 @@ def normales_locales(position,neighbours,t)->dict:
                     normale_locale = +cos_theta*np.array([0,1]) - sin_theta*np.array([1,0])
                     d[(index,i)] = normale_locale
     return d
+
+pos = np.array([[[100,100]], [[150,150]], [[200,100]]])
+pos2 = np.array([[150,300], [500,300], [600,400]])
+matrice_adjacence = np.array([[0,1,0], [1,0,1], [0,1,0]])
+print("normales",normales_locales(pos, matrice_adjacence, 0))  # Affiche les normales locales pour les positions et la matrice d'adjacence données
+print("somme_normales", somme_normales_locales(pos, matrice_adjacence, 0))  # Affiche la somme des normales locales
 
 
 def pfd(liste_force, t, mass=1):
@@ -316,6 +368,8 @@ def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
     #force de l'eau sur chaque sommet
     f_eau = np.zeros((n_nodes, n_interval_time, 2))  #shape = (N_noeuds, N_t, 2)
 
+    f_musc_proj = np.zeros((n_nodes, n_interval_time, 2)) #shape = (N_noeuds, N_t, 2)
+
     #force de viscosité
     #f_visc = np.zeros((n_nodes, n_interval_time, 2)) #shape = (N_noeuds, N_t, 2)
 
@@ -331,13 +385,25 @@ def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
     for t in range(1,int(n_interval_time)):
 
         #calcul de la force de frottement liée à l'eau
+<<<<<<< HEAD
         f_eau[:,t] = 0 #frottement_eau_globale(v,matrice_adjacence,xy,t-1,1)
+=======
+        f_eau[:,t] = frottement_eau_globale(v,matrice_adjacence,xy,t-1,10)
+>>>>>>> a95a4b15e819e330ee745cd766f5573cc87e67ac
 
         #force de rappel en chacun des sommets
-        f_rap[:,t] = force_rappel_amortie(xy, v, l0, t-1) 
+        f_rap[:,t] = force_rappel_amortie(xy, v, l0, t-1)
+
+        f_musc_proj[:,t] = force_musc_projetee(xy, matrice_adjacence, f_musc, t-1) 
         force_reaction[:,t] = action_reaction(f_musc[:,t], xy[:,t], l0)  
+<<<<<<< HEAD
+=======
+        #print(np.shape(f_rap))
+        #print(np.shape(force_reaction)) 
+>>>>>>> a95a4b15e819e330ee745cd766f5573cc87e67ac
         #Array rassemblant les différentes forces
-        liste_forces = np.array([f_rap, force_reaction,f_musc])
+        #print(np.linalg.norm(f_eau[:,t]),np.linalg.norm(f_rap[:,t]))
+        liste_forces = np.array([f_rap, f_eau,f_musc_proj, force_reaction])  # Liste des forces appliquées à chaque noeud
         
         #Somme des forces et calcul du PFD au temps t
         a[:,t] = pfd(liste_forces, t)
@@ -345,6 +411,8 @@ def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
         #Calcul de la vitesse et position au temps t
         v[:, t] = v[:, t-1] + dt * a[:, t-1]
         xy[:, t] = xy[:, t-1] + dt * v[:, t-1]
+        #if t >= 2:
+        #    xy[:, t] = 2*xy[:, t-1] - xy[:, t-2] + dt**2 * a[:, t-1]  # Méthode de Verlet pour la position
     
     #Calcul de l'énergie cinétique et de la distance parcourue
     energie = energie_cinetique(v, n_interval_time-1)
@@ -491,7 +559,7 @@ med2 = [pos3, matrice_adjacence]
                #   [[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15],[-15,15][0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[15,-15],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]]]
                  #
 
-force_initial = ([[[0,-15]], [[0,0]], [[0,0]]])
+force_initial = ([[[0,+150]], [[0,0]], [[0,+150]]])
 force_initial2 = ([[[0,-15,]],[[0,0]]])
 
 
@@ -512,8 +580,8 @@ pos2 = calcul_position(med2)[1]
 pos3 = calcul_position(baton)[1]
 t = 0
 
-"""with open("creature_gagnante.json", "r", encoding="utf-8") as f:
-    pos = np.array(json.load(f)[1])"""
+with open("creature_gagnante.json", "r", encoding="utf-8") as f:
+    pos = np.array(json.load(f)[1])
 
 #Test bulles
 bubbles = instantiate_bubbles(30)
