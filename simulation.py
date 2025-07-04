@@ -3,8 +3,14 @@ import numpy as np
 import physics as p
 import examples as e
 import time
+from concurrent.futures import ProcessPoolExecutor
 
-N_SIMULATIONS = 10  # Nombre de simulations à effectuer
+N_SIMULATIONS = 100  # Nombre de simulations à effectuer
+
+def eval_creature(args):
+    i, creature = args
+    score = p.calcul_position([np.array(element) for element in creature[1:]])[3]
+    return [i, score]
 
 def simulation(i_simulation):
     with open(f"generations/meilleures_creatures_{i_simulation}.json", "r", encoding="utf-8") as f:
@@ -12,7 +18,9 @@ def simulation(i_simulation):
     
     n = len(creatures)  # Nombre de créatures
     
-    results = [[i, p.calcul_position([np.array(element) for element in creature[1:]])[3]] for i, creature in enumerate(creatures)]
+    with ProcessPoolExecutor() as executor:
+        results = list(executor.map(eval_creature, enumerate(creatures)))
+    #results = [[i, p.calcul_position([np.array(element) for element in creature[1:]])[3]] for i, creature in enumerate(creatures)]
     # liste de la forme [ [0,score],[1,score],... ]
     results_sorted = sorted(results, key=lambda x: x[1], reverse=True)  # Trier en fonction du score décroissant
     best_results = results_sorted[:n//2]  # Prendre les n/2 meilleurs résultats
@@ -57,4 +65,5 @@ def mutation_toutes(creatures):
         i += 1
     return creatures_nouvelles
 
-simulation_multiple(N_SIMULATIONS)
+if __name__ == "__main__":
+    simulation_multiple(N_SIMULATIONS)

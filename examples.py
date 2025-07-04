@@ -3,16 +3,19 @@ import matplotlib.pyplot as plt
 import random
 import math
 import json
+from scipy.ndimage import gaussian_filter1d
 
 
 LENGTH = 70
 NOMBRE_DE_CREATURES = 1000
-MIN_TICKS = 50
-MAX_TICKS = 60
-MIN_N_MOVEMENTS = 10
+MIN_POINTS = 3
+MAX_POINTS = 10
+MIN_TICKS = 120
+MAX_TICKS = 180
+MIN_N_MOVEMENTS = 3
 MAX_N_MOVEMENTS = 20
-MIN_FORCE_MUSC = -10
-MAX_FORCE_MUSC = 10
+MIN_FORCE_MUSC = -1000
+MAX_FORCE_MUSC = 1000
 
 
 
@@ -92,7 +95,11 @@ def croisement_segments(segment1, segment2):
 
 
 def create_random_creature():
-    num_points = random.randint(5, 6)
+    """Génère une créature (positions, connections) avec un nombre de noeuds aléatoire compris entre MIN_POINTS et MAX_POINTS
+    positions : tableau numpy qui contient les couples de coordonnées [x,y] pour chaque noeud
+    connections : tableau numpy de taille (nb_points * nb_points), où la valeur i,j correspond à la distance entre le noeud i et le noeud j s'il existe un segment entre ces deux points, et 0 sinon
+    Ne prend pas d'argument, renvoie un couple (positions, connections)"""
+    num_points = random.randint(MIN_POINTS, MAX_POINTS)
     positions = [[0, 0]]
     connections = [[0]]  #Matrice d'adjacence (de distances)
     i = 0
@@ -127,27 +134,11 @@ def create_random_creature():
         connections.append(new_row)
         i += 1
 
-    # Conversion en numpy
+    # Conversion en tableau numpy
     pos_array = np.array(positions)
     dist_array = np.array(connections)
     return (pos_array, dist_array)
 
-def is_symmetric(matrix):
-    return np.array_equal(matrix, matrix.T)
-
-def distances_match(positions, distance_matrix):
-    n = len(positions)
-    for i in range(n):
-        for j in range(n):
-            if distance_matrix[i, j] != 0:
-                actual_dist = round(np.linalg.norm(positions[i] - positions[j]), 5)
-                if abs(actual_dist - distance_matrix[i, j]) > 0.01:
-                    return False
-    return True
-
-def is_valid_creature(positions, distance_matrix):
-    """Vérifie si la matrice des distances est symétrique ainsi que la correspondance entre la matrice et les coordonnées"""
-    return is_symmetric(distance_matrix) and distances_match(positions, distance_matrix)
 
 
 
@@ -405,10 +396,14 @@ def adn_ajout_force(creature):
     noeud = random.randint(0, len(positions) - 1)
 
     indices = [index for index, vecteur in enumerate(forces[noeud]) if vecteur.all() == 0]
+    if not indices :
+        return [positions, connections, forces]
     indice_changement = random.choice(indices)
 
     forces[noeud][indice_changement][0] = MIN_FORCE_MUSC + (MAX_FORCE_MUSC - MIN_FORCE_MUSC) * random.random()
+    forces[noeud,:, 0] = gaussian_filter1d(forces[noeud, :, 0], sigma=1) # Lissage par gaussienne
     forces[noeud][indice_changement][1] = MIN_FORCE_MUSC + (MAX_FORCE_MUSC - MIN_FORCE_MUSC) * random.random()
+    forces[noeud,:, 1] = gaussian_filter1d(forces[noeud, :, 1], sigma=1)
     
     return [positions, connections, forces]
 
@@ -528,6 +523,12 @@ def creature_force_musculaire_aleatoire(creatures_tot):
             n_movements = np.random.randint(MIN_N_MOVEMENTS, MAX_N_MOVEMENTS) # Nombre de mouvements dans un cycle pour le noeud i
             mask[i, np.random.choice(ticks, size=n_movements, replace=False)] = True
         force_musc[mask] = MIN_FORCE_MUSC + (MAX_FORCE_MUSC - MIN_FORCE_MUSC) * np.random.random((mask.sum(),2))
+
+        # Appliquer un flou gaussien pour lisser les forces
+        for i in range(n):
+            for d in range(2):  # Pour chaque dimension (x et y)
+                force_musc[i,:,d] = gaussian_filter1d(force_musc[i,:,d], sigma=1)
+
         creatures_tot[key].append(force_musc)
     return creatures_tot
 
@@ -539,6 +540,8 @@ def force_musculaire_aleatoire_noeud(ticks):
     n_movements = np.random.randint(MIN_N_MOVEMENTS, MAX_N_MOVEMENTS)  # Nombre de mouvements dans un cycle pour le noeud
     mask[np.random.choice(ticks, size=n_movements, replace=False)] = True
     force_musc_noeud[mask] = MIN_FORCE_MUSC + (MAX_FORCE_MUSC - MIN_FORCE_MUSC) * np.random.random((mask.sum(), 2))
+    for d in range(2):
+        force_musc_noeud[:, d] = gaussian_filter1d(force_musc_noeud[:, d], sigma=1)
     return force_musc_noeud
 
 def generation_initiale():
