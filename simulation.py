@@ -1,7 +1,7 @@
 import json
 import numpy as np
 import physics as p
-import examples as e
+import generation as e
 import time
 from concurrent.futures import ProcessPoolExecutor
 
