@@ -1,4 +1,3 @@
-import pygame
 import numpy as np
 
 """Filtres gaussiens pour transformer les forces d'une génération à l'autre (augmenter un tick de force et les ticks voisins de manière lissée)"""
@@ -13,8 +12,6 @@ def ampl_moins(mu=0,sigma=2):
     return -gaussienne(np.arange(-3*sigma,3*sigma),1)+np.ones(6*sigma)
 
 #force[dot-6:dot+6]*= ampl_moins()     <-- Basile voila comment appliquer en gros
-
-def centres_de_masse(positions_tot:np.ndarray,t):
 
 
 # Calcul la position du centre de masse de la créature à un instant t
