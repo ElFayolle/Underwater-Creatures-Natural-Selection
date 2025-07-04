@@ -1,4 +1,3 @@
-import pygame
 import numpy as np
 
 """Filtres gaussiens pour transformer les forces d'une génération à l'autre (augmenter un tick de force et les ticks voisins de manière lissée)"""

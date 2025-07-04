@@ -6,8 +6,11 @@ import json
 
 #Interface graphique utilisant pygame
 pygame.init()
+
 # Initialisation de l'écran
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
+background = pygame.image.load("fond.jpg").convert()
+background = pygame.transform.scale(background, (WIDTH, HEIGHT)) 
 pygame.display.set_caption("Natural Selection Simulation")
 clock = pygame.time.Clock()
 running = True
@@ -94,7 +97,8 @@ while running and t < DUREE_SIM/(DT):
             CURRENT_CREATURE=see_creatures(position_tot, event)
             
 
-    screen.fill((0, 35, 120))
+    screen.blit(background, (0, 0))
+    #screen.fill((0, 35, 120))
 
     #Calcul du barycentre de la créature 
     barycentre = centre_de_masse(position_tot[CURRENT_CREATURE], t)

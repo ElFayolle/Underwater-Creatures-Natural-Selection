@@ -4,10 +4,11 @@ import random
 import math
 import json
 from scipy.ndimage import gaussian_filter1d
+import utils as u
 
 
 LENGTH = 70
-NOMBRE_DE_CREATURES = 1000
+NOMBRE_DE_CREATURES = 100
 MIN_POINTS = 3
 MAX_POINTS = 10
 MIN_TICKS = 120
@@ -220,12 +221,24 @@ def adn_changement_amplitude_force(creature):
     """Modifie les forces appliquées au cours d'un cycle.
     Prend en argument une créature [positions, matrice, forces] et renvoie une créature avec des forces au même moment mais de valeur différente"""
     forces = np.zeros(np.shape(creature[2]))
+    n = len(creature[0])
+    i = np.random.randint(0, n)  # Choisir un noeud aléatoire
+    k = np.random.randint(0,2)   # Choisir un type de mutation aléatoire
+    m = len(creature[2][i])
+    tick = np.random.randint(0, m)  # Choisir un tick aléatoire
+    start = max(tick - 6, 0)
+    end = min(tick + 6, m)
+    size = end - start
+    if k == 0:
+        facteur = u.ampl_moins()
+    else:
+        ampl = np.random.randint(0,2) + 1 # ampl est entre 1 et 2
+        signe = random.choice([-1, 1])
+        facteur = u.ampl_plus(signe, ampl)
+    creature[2][i][start:end,0] *= facteur[:size]
+    creature[2][i][start:end,1] *= facteur[:size]
 
-    for noeud in range(len(creature[2])):
-        for index, force in enumerate(creature[2][noeud]) :
-            if force.any() != 0. :
-                forces[noeud][index] = force * random.randint(-200, 200) / 100
-    return([creature[0], creature[1], forces])
+    return([creature[0], creature[1], creature[2]])
 
 
 
@@ -381,7 +394,6 @@ def adn_changement_position_noeud (creature):
             connections[k][voisin] = nouvelle_distance
 
     if not creature_est_valide([positions, connections, forces]) :
-        print("Impossible de bouger le point ", k)
         return creature
     
     return (positions, connections, forces)
@@ -431,12 +443,10 @@ def adn_duree_cycle_forces(creature):
     forces = np.copy(creature[2])
     x = random.randint(1, 10)
     sens = random.choice([-1, 1])
-    print(np.shape(forces))
     if sens == -1 :
         forces = forces[:,:-x]
     else :
         forces = np.concatenate([forces, np.zeros((len(forces), x, 2))], axis = 1)
-    print(np.shape(forces), x, sens)
 
     return [np.copy(creature[0]), np.copy(creature[1]), forces]
 
@@ -499,7 +509,7 @@ def mutation_creature(creature):
     liste_mutations = [
         adn_longueur_segment,
         adn_changement_amplitude_force,
-        adn_changement_ordre_force,
+        #adn_changement_ordre_force,
         adn_ajout_segment,
         adn_suppression_segment,
         adn_changement_position_noeud,
