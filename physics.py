@@ -73,7 +73,6 @@ def force_repulsion_noeuds(pos, matrice_adjacence, seuil=10.0, k_rep=100.0, t=0)
                 dist = np.linalg.norm(delta)
                 if dist < seuil and dist > 1e-6:
                     if not (is_rep[i][0] or is_rep[j][0]):
-                        print("r&épulsion")
                         is_rep[i]=np.array([1,1])
                         is_rep[j]=np.array([1,1])
                     direction = delta / dist
