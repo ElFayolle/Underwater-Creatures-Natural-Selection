@@ -1,4 +1,3 @@
-import pygame
 import numpy as np
 
 def centres_de_masse(positions_tot:np.ndarray,t):
