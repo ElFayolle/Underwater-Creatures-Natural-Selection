@@ -7,15 +7,15 @@ from scipy.ndimage import gaussian_filter1d
 
 
 LENGTH = 70
-NOMBRE_DE_CREATURES = 100
+NOMBRE_DE_CREATURES = 1000
 MIN_NODES = 3
 MAX_NODES = 10
 MIN_TICKS = 120
 MAX_TICKS = 180
-MIN_N_MOVEMENTS = 10
+MIN_N_MOVEMENTS = 3
 MAX_N_MOVEMENTS = 20
-MIN_FORCE_MUSC = -100
-MAX_FORCE_MUSC = 100
+MIN_FORCE_MUSC = -1000
+MAX_FORCE_MUSC = 1000
 
 
 
@@ -411,7 +411,9 @@ def adn_ajout_force(creature):
     indice_changement = random.choice(indices)
 
     forces[noeud][indice_changement][0] = MIN_FORCE_MUSC + (MAX_FORCE_MUSC - MIN_FORCE_MUSC) * random.random()
+    forces[noeud,:, 0] = gaussian_filter1d(forces[noeud, :, 0], sigma=1) # Lissage par gaussienne
     forces[noeud][indice_changement][1] = MIN_FORCE_MUSC + (MAX_FORCE_MUSC - MIN_FORCE_MUSC) * random.random()
+    forces[noeud,:, 1] = gaussian_filter1d(forces[noeud, :, 1], sigma=1)
     
     return [positions, connections, forces]
 
@@ -548,6 +550,8 @@ def force_musculaire_aleatoire_noeud(ticks):
     n_movements = np.random.randint(MIN_N_MOVEMENTS, MAX_N_MOVEMENTS)  # Nombre de mouvements dans un cycle pour le noeud
     mask[np.random.choice(ticks, size=n_movements, replace=False)] = True
     force_musc_noeud[mask] = MIN_FORCE_MUSC + (MAX_FORCE_MUSC - MIN_FORCE_MUSC) * np.random.random((mask.sum(), 2))
+    for d in range(2):
+        force_musc_noeud[:, d] = gaussian_filter1d(force_musc_noeud[:, d], sigma=1)
     return force_musc_noeud
 
 def generation_initiale():

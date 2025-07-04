@@ -243,7 +243,7 @@ def visualisation_creature(i_generation,i_creature=0):
         creature = json.load(f)[i_creature][1:]  # de la forme [position,matrice_adjacence,forces] 
     calc = calcul_position([np.array(element) for element in creature])
     return calc
-#v,pos,liste_forces,score = visualisation_creature(7,30)  # Visualisation de la créature 0 de la génération 0
+v,pos,liste_forces,score = visualisation_creature(33,0)  # Visualisation de la créature 0 de la génération 0
 #Test bulles
 bubbles = instantiate_bubbles(30)
 position_tot={0:pos,1:pos2}
