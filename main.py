@@ -9,7 +9,6 @@ pygame.init()
 
 # Initialisation de l'écran
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-
 background = pygame.image.load("fond.jpg").convert()
 background = pygame.transform.scale(background, (WIDTH, HEIGHT)) 
 pygame.display.set_caption("Natural Selection Simulation")
