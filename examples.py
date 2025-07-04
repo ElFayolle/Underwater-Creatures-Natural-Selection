@@ -3,12 +3,15 @@ import matplotlib.pyplot as plt
 import random
 import math
 import json
+from scipy.ndimage import gaussian_filter1d
 
 
 LENGTH = 70
 NOMBRE_DE_CREATURES = 100
-MIN_TICKS = 50
-MAX_TICKS = 60
+MIN_NODES = 3
+MAX_NODES = 10
+MIN_TICKS = 120
+MAX_TICKS = 180
 MIN_N_MOVEMENTS = 10
 MAX_N_MOVEMENTS = 20
 MIN_FORCE_MUSC = -10
@@ -180,8 +183,7 @@ def adn_longueur_segment(creature):
     #k = random.randint(0, n - 1)
     k = 0
     voisins = [j for j in range(n) if connections[k][j] != 0]
-    if voisins == []:
-        print("euuuh",creature)
+
     i = random.choice(voisins)
 
     # Vecteur du segment ik
@@ -299,13 +301,15 @@ def adn_suppression_segment(creature):
     forces = np.copy(creature[2])
     n = len(positions)
 
+    if n == 3:
+        return creature
+
     candidats = []
 
     for index, sommet in enumerate(connections) :
         if sum([1 for i in sommet if i != 0]) == 1 :
             candidats.append(index)
-    if candidats == []:
-        print("euuuh", creature)
+
     noeud_suppr = random.choice(candidats)
     positions1 = positions[:noeud_suppr]
     positions2 = positions[noeud_suppr + 1:]
@@ -322,7 +326,7 @@ def adn_suppression_segment(creature):
 
     forces1 = forces[:noeud_suppr]
     forces2 = forces[noeud_suppr + 1:]
-    forces = np.concatenate([forces1, forces2], axis = 1)
+    forces = np.concatenate([forces1, forces2], axis = 0)
 
     return ([positions, connections, forces])
 
@@ -496,7 +500,10 @@ def mutation_creature(creature):
         adn_changement_ordre_force,
         adn_ajout_segment,
         adn_suppression_segment,
-        adn_changement_position_noeud
+        adn_changement_position_noeud,
+        adn_duree_cycle_forces,
+        adn_ajout_force,
+        adn_suppression_force
     ]
     mutation = random.choice(liste_mutations)
     creature_modifiee = mutation(creature)
@@ -514,6 +521,12 @@ def creature_force_musculaire_aleatoire(creatures_tot):
             n_movements = np.random.randint(MIN_N_MOVEMENTS, MAX_N_MOVEMENTS) # Nombre de mouvements dans un cycle pour le noeud i
             mask[i, np.random.choice(ticks, size=n_movements, replace=False)] = True
         force_musc[mask] = MIN_FORCE_MUSC + (MAX_FORCE_MUSC - MIN_FORCE_MUSC) * np.random.random((mask.sum(),2))
+
+        # Appliquer un flou gaussien pour lisser les forces
+        for i in range(n):
+            for d in range(2):  # Pour chaque dimension (x et y)
+                force_musc[i,:,d] = gaussian_filter1d(force_musc[i,:,d], sigma=1)
+
         creatures_tot[key].append(force_musc)
     return creatures_tot
 
@@ -528,6 +541,11 @@ def force_musculaire_aleatoire_noeud(ticks):
     return force_musc_noeud
 
 def generation_initiale():
+    creatures_tot = {}
+    for i in range(NOMBRE_DE_CREATURES):
+        pos, dist = create_random_creature()
+        creatures_tot[i] = [pos, dist]
+
     creatures_tot = creature_force_musculaire_aleatoire(creatures_tot)
 
     with open("generations/meilleures_creatures_0.txt", "w", encoding = 'utf-8') as fichier_texte :
@@ -547,7 +565,7 @@ def generation_initiale():
             json_creatures.append([key, pos, mat, forc])
         json.dump(json_creatures, f, indent=2)
 
-
+generation_initiale()
 
 # pos, dist = create_random_creature()
 # creature_test = [pos, dist]
