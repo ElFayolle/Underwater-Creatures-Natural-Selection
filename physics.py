@@ -64,7 +64,7 @@ def contrainte_longueurs(xy, l0, matrice_adjacence, t):
                 if matrice_adjacence[i, j] != 0:
                     vec = xy_t[j] - xy_t[i]
                     dist = np.linalg.norm(vec)
-                    if dist == 0:
+                    if dist < 1e-10:
                         continue
                     diff = dist - l0[i, j]
                     correction = (diff / 2) * (vec / dist)
@@ -86,6 +86,7 @@ def frottement_eau_globale(vitesse:np.ndarray,neighbours:np.ndarray,position:np.
     for i,_ in enumerate(position[:,t]):
         voisins = [index for index, e in enumerate(neighbours[i]) if e != 0]
         section_efficace = np.zeros((l))
+        bool_test_straight = True
         for index in voisins:
             BA = -position[index,t]+position[i,t] # Vecteur BA avec A le premier sommet 
             norm = np.linalg.norm(BA)
@@ -98,25 +99,30 @@ def frottement_eau_globale(vitesse:np.ndarray,neighbours:np.ndarray,position:np.
                 section_efficace[index] = (norm*np.abs(np.dot(vitesse[index,t],normale_locale)))
             
                 if np.sum(section_efficace)>1e-6:
-                    F_visq[index] += -alpha*vitesse[index,t]*np.linalg.norm(vitesse[index,t])*section_efficace[index]/np.sum(section_efficace)   
+                    F_visq[index] += -alpha*vitesse[index,t]*np.linalg.norm(vitesse[index,t])*section_efficace[index]/np.sum(section_efficace)
+                    bool_test_straight = False   
                     #print("prour")
                     #print(F_visq[index],np.sum(section_efficace),section_efficace[index],norm,cos_theta) 
+        # if bool_test_straight:
+        #     F_visq[index] = -vitesse[index,t]*vitesse[index,t]
 
     return F_visq
 
-def frottement_eau_3(vitesse: np.ndarray, neighbours: np.ndarray, position: np.ndarray, t, alpha: float = 1):
-    l = len(position)
-    F_visq = np.zeros((l, 2))
-    v_moy = vitesse_moyenne(vitesse, t)
+def frottement_eau_3(vitesse:np.ndarray,neighbours:np.ndarray,position:np.ndarray,t,alpha:float = 1):
+    l=len(position)
+    F_visq = np.zeros((l,2))
+    v_moy = vitesse_moyenne(vitesse,t-1)
 
-    norm_locales = somme_normales_locales(position, neighbours, t)
+    norm_locales = somme_normales_locales(position,neighbours,t-1)
     for node, normale in enumerate(norm_locales):
-        norm_normale = np.linalg.norm(normale)
-        if norm_normale > 1e-10:
-            v_rel = vitesse[node, t] - v_moy
-            v_normale = np.dot(v_rel, normale) / (norm_normale**2) * normale
-            F_visq[node] = -alpha * v_normale
-    return F_visq
+        if np.count_nonzero(neighbours[node])<=1:
+            if np.linalg.norm(normale) > 1e-10:
+                #F_visq[node] = -alpha*(vitesse[node,t])*np.dot((vitesse[node,t]),normale)
+                F_visq[node] = -alpha*(vitesse[node,t])*np.linalg.norm((vitesse[node,t]))
+        else:
+                F_visq[node] = -alpha*(vitesse[node,t])
+    #print(F_visq[1],vitesse[0,t],vitesse[1,t],vitesse[2,t],norm_locales[2],)
+    return F_visq  
 
 
 def frottement_global(vitesse: np.ndarray, neighbours: np.ndarray, position: np.ndarray, t, alpha: float = 50):
@@ -204,6 +210,11 @@ def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
     pos_init, matrice_adjacence, f_musc_periode = creature[0], creature[1], creature[2]
     n_nodes = len(pos_init)  # Nombre de noeuds dans la créature
     l0 = neighbors(pos_init, matrice_adjacence)
+
+    #Amortissement eau:
+    # delta_t_amort = np.zeros(n_nodes)
+    # t_amort = 100
+
     #pos = [[100,100], [100,300]] #test pos initial pour 2 noeuds
     #neigh = [[0,200], [200,0]]   
 
@@ -239,11 +250,23 @@ def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
     for t in range(1,int(n_interval_time)):
         #calcul de la force de frottement liée à l'eau
 
-        f_eau[:,t] = frottement_global(v,matrice_adjacence,xy,t-1) #np.array([[10,10]for _ in range(n_nodes)]) 
+        f_eau[:,t] = frottement_eau_3(v,matrice_adjacence,xy,t-1,1) #np.array([[15,15] for i in range(n_nodes)])#-v[:,t-1]#
+        # for node in range(n_nodes):
+            # if np.linalg.norm(v[node,t-1]) >= 10 and delta_t_amort[node]%t_amort !=0:
+            #     f_eau[node,t]*= (1-np.exp(-delta_t_amort[node]*5/t_amort))
+            #     delta_t_amort[node] = (delta_t_amort+1)%t_amort
+        #f_eau[:,t] = orthogonalise_force2(f_eau, xy, l0,t)
         #f_visc[:,t] = -gamma*v[:,t]
         #force de rappel en chacun des sommets
-        #f_rap[:,t] = 0 #force_rappel_amortie(xy, v, l0, t-1) 
-        force_reaction[:,t] = action_reaction(f_musc[:,t], xy[:,t], l0)   
+        f_rap[:,t] = 0 #force_rappel_amortie(xy, v, l0, t-1) 
+        #force_reaction[:,t] = orthogonalise_force2(force_reaction,xy,l0,t)  
+        
+
+        f_musc[:,t] = orthogonalise_force2(f_musc, xy, l0,t)
+        force_reaction[:,t] = action_reaction(f_musc[:,t], xy[:,t], l0)
+        force_reaction[:,t] = orthogonalise_force2(force_reaction,xy,l0,t)
+
+        
         #Array rassemblant les différentes forces
         #f_musc[:,t] = orthogonalise_force(f_musc[:,t], xy[:,t], l0)
         liste_forces = np.array([f_eau, force_reaction ,f_musc])
@@ -255,7 +278,8 @@ def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
         v[:, t] = v[:, t-1] + dt * a[:, t-1]
         xy[:, t] = xy[:,t-1] + dt * v[:, t-1]
         xy[:, t] = contrainte_longueurs(xy, l0, matrice_adjacence, t)
-    score = distance(xy,-1)  # Calcul du score de la créature à l'instant t
+
+        score = distance(xy,n_interval_time-1)
     return (v, xy, liste_forces, score)
 
 
