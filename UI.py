@@ -67,5 +67,5 @@ def draw_bubbles(screen,bubbles,offset):
     return: None
     """
     for index,bubble in enumerate(bubbles):
-        pygame.draw.circle(screen,(29,50,140),bubble[:-1]+offset,bubble[2])
+        pygame.draw.circle(screen,(29,50,140),(bubble[:-1]+offset)%np.array([WIDTH,HEIGHT]),bubble[2])
     return None
