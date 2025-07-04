@@ -5,6 +5,7 @@ We will study the natural selection of underwater creatures #UnderWaterSophia2k2
 
 L'objectif de ce projet est la simulation de l'évolution de créatures dans un milieu aquatique.
 
+![image](https://github.com/user-attachments/assets/9ef18ba7-22ac-4a33-88f3-3b228fd3ef9e)
 
 
 Les créatures sont modélisées selon des noeuds reliés entre eux par des segments faisant office de muscles.
