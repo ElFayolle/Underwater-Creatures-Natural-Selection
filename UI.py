@@ -36,13 +36,13 @@ def draw_creature(screen,pos, liste_forces, t, offset):
         pygame.draw.line(screen,(25, 30, 70),pos[index-1,t]+offset,pos[index,t]+offset,4)
         pygame.draw.circle(screen,(100,189,255),pos[index-1,t]+offset,5)
     pygame.draw.circle(screen,(100,189,255),pos[-1,t]+offset,5)
-        
+    """"    
     # Affichage des forces appliquées sur chaque noeud
     for index in range(len(pos)):
         colours_force = [(255,0,0),(0,255,0),(0,0,255)]
         for i in range(len(liste_forces)):
             pygame.draw.line(screen,colours_force[i],pos[index-1,t]+offset,pos[index-1,t]+liste_forces[i][index-1,t]+offset,2)        
-
+"""
     # Affichage de l'origine de la créature
     pygame.draw.circle(screen,(255,0,0),centre_de_masse(pos,0)+offset,3)
     return None
@@ -69,5 +69,5 @@ def draw_bubbles(screen,bubbles,offset):
     return: None
     """
     for index,bubble in enumerate(bubbles):
-        pygame.draw.circle(screen,(29,50,140),bubble[:-1]+offset,bubble[2])
+        pygame.draw.circle(screen,(29,50,140),(bubble[:-1]+offset)%np.array([WIDTH,HEIGHT]),bubble[2])
     return None
