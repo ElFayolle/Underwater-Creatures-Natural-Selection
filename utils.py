@@ -13,8 +13,6 @@ def ampl_moins(mu=0,sigma=2):
 
 #force[dot-6:dot+6]*= ampl_moins()     <-- Basile voila comment appliquer en gros
 
-def centres_de_masse(positions_tot:np.ndarray,t):
-
 
 # Calcul la position du centre de masse de la créature à un instant t
 def centre_de_masse(position:np.ndarray,t):
