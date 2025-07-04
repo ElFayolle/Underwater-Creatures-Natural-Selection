@@ -115,8 +115,8 @@ while running and t < DUREE_SIM/(DT):
     text = font.render("N° : " + str(CURRENT_CREATURE)+" distance : " + str(distance(position_tot[CURRENT_CREATURE],t)) ,1,(255,255,255))
 
     # Affichage des forces sur la créature
-    force_liste_nom = ["force eau", "force de réaction", "force musculaire"]
-    couleurs_force = [(255,0,0),(0,255,0),(0,0,255)]
+    force_liste_nom = ["force eau", "force de réaction", "force musculaire","f_rép_noeud"]
+    couleurs_force = [(255,0,0),(0,255,0),(0,0,255),(255,255,0)]
     screen.blit(text, (10, 10))
 
     for i, force in enumerate(liste_forces):

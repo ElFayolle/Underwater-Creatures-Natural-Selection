@@ -39,7 +39,7 @@ def draw_creature(screen,pos, liste_forces, t, offset):
     """"    
     # Affichage des forces appliquées sur chaque noeud
     for index in range(len(pos)):
-        colours_force = [(255,0,0),(0,255,0),(0,0,255)]
+        colours_force = [(255,0,0),(0,255,0),(0,0,255),(255,255,0)]
         for i in range(len(liste_forces)):
             pygame.draw.line(screen,colours_force[i],pos[index-1,t]+offset,pos[index-1,t]+liste_forces[i][index-1,t]+offset,2)        
 """

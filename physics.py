@@ -2,9 +2,6 @@ from utils import *
 from params import *
 
 
-
-
-
 # Fonction de frottement dans l'eau pour les créatures - dernière version
 def frottement_eau_3(vitesse:np.ndarray,neighbours:np.ndarray,position:np.ndarray,t,alpha:float = 1):
     """
@@ -54,7 +51,38 @@ def force_rappel_amortie(positions, vitesses, l0, t, k=10e-3, c=10):
     F_total[l0 == 0] = 0.0
     return F_total.sum(axis=0)
 
+def force_repulsion_noeuds(pos, matrice_adjacence, seuil=10.0, k_rep=100.0, t=0):
+    """
+    Applique une force répulsive entre noeuds non connectés trop proches.
+    - pos: tableau des positions (n_nodes, n_t, 2)
+    - matrice_adjacence: (n_nodes, n_nodes)
+    - seuil: distance minimale tolérée
+    - k_rep: intensité de la force répulsive
+    - t: instant de temps
+    Renvoie un tableau de forces répulsives (n_nodes, 2)
+    """
+    n = len(pos)
+    force_rep = np.zeros((n, 2))
+    is_rep = np.zeros((n,2))
 
+    for i in range(n):
+        for j in range(i + 1, n):
+            if matrice_adjacence[i, j] == 0:  # Pas connectés
+                
+                delta = pos[j, t] - pos[i, t]
+                dist = np.linalg.norm(delta)
+                if dist < seuil and dist > 1e-6:
+                    if not (is_rep[i][0] or is_rep[j][0]):
+                        print("r&épulsion")
+                        is_rep[i]=np.array([1,1])
+                        is_rep[j]=np.array([1,1])
+                    direction = delta / dist
+                    magnitude = k_rep / ((dist/seuil+0.5)**4) 
+                    f = -magnitude * direction
+                    force_rep[i] += f
+                    force_rep[j] -= f  # Action-réaction
+
+    return is_rep,force_rep
 
 #Ajuste xy_t (positions au temps t) pour que la distance entre chaque paire de noeuds connectés soit égale à l0.
 def contrainte_longueurs(xy, l0, matrice_adjacence, t):
@@ -142,6 +170,9 @@ def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
     n_nodes = len(pos_init)  
     l0 = neighbors(pos_init, matrice_adjacence)
 
+    delta_t_amort=0
+    t_amort=10
+
     
     #Nombre d'itérations
     n_interval_time = int(T/dt)  
@@ -155,6 +186,7 @@ def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
     xy = np.zeros((n_nodes, n_interval_time, 2))    
     f_eau = np.zeros((n_nodes, n_interval_time, 2))
     force_reaction = np.zeros((n_nodes, n_interval_time, 2)) 
+    f_repulsion = np.zeros((n_nodes, n_interval_time, 2))
 
     #Condition initiale de position
     xy[:,0] = pos_init
@@ -168,10 +200,17 @@ def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
         f_musc[:,t] = orthogonalise_force(f_musc, xy, l0,t)
         force_reaction[:,t] = action_reaction(f_musc[:,t], xy[:,t], l0)
         force_reaction[:,t] = orthogonalise_force(force_reaction,xy,l0,t)
+        is_rep_bool, force_rep = force_repulsion_noeuds(xy, matrice_adjacence, seuil=15.0, k_rep=300.0, t=t-1)
+    
+        
+        f_repulsion[:, t] =   force_rep  +(-f_eau[:,t] -force_reaction[:,t] - f_musc[:,t])*is_rep_bool
+        
+        f_repulsion[:,t] = orthogonalise_force(f_repulsion,xy,l0,t)
+
 
         
         #Array rassemblant les différentes forces
-        liste_forces = np.array([f_eau, force_reaction ,f_musc])
+        liste_forces = np.array([f_eau, force_reaction ,f_musc, f_repulsion])
 
         #Somme des forces et calcul du PFD au temps t
         a[:,t] = pfd(liste_forces, t)
