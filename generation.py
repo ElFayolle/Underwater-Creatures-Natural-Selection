@@ -194,7 +194,7 @@ def adn_longueur_segment(creature):
     # Nouvelle longueur perturbée
     new_length = current_length + random.gauss(0, LENGTH / 2)
 
-    if new_length < (LENGTH / 3) :
+    if new_length < (LENGTH / 3) or new_length > (2 * LENGTH):
         return(positions, connections, forces)
 
     direction = vec / current_length
