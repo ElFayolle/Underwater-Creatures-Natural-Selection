@@ -1,17 +1,31 @@
 import pygame
 import numpy as np
 
+"""Filtres gaussiens pour transformer les forces d'une génération à l'autre (augmenter un tick de force et les ticks voisins de manière lissée)"""
+@np.vectorize
+def gaussienne(x,ampl,mu=0,sigma=2):
+    return ampl*np.exp(-(x-mu)**2/(2*sigma**2))
+
+#-3 écarts types et +3 écarts types = 99% des valeurs de la gaussienne.
+def ampl_plus(signe,ampl,mu=0,sigma=2):
+    return signe*(gaussienne(np.arange(-3*sigma,3*sigma),ampl)+np.ones(6*sigma))
+def ampl_moins(mu=0,sigma=2):
+    return -gaussienne(np.arange(-3*sigma,3*sigma),1)+np.ones(6*sigma)
+
+#force[dot-6:dot+6]*= ampl_moins()     <-- Basile voila comment appliquer en gros
+
 def centres_de_masse(positions_tot:np.ndarray,t):
 
-    C_tot = np.zeros((len(positions_tot,2)))
-    for index,pos in enumerate(positions_tot): # Boucle for berk mais je ne trouve rien de pratique
-        C_tot[index] = centre_de_masse(pos) 
-    return C_tot
 
+# Calcul la position du centre de masse de la créature à un instant t
 def centre_de_masse(position:np.ndarray,t):
-    """Calcul du centre de masse de chaque créature à un instant t"""
+    """position: positions des noeuds de la créature (n_nodes, n_t, 2)
+    t: le temps actuel (int)
+    return : le centre de masse de la créature à l'instant t (2,)"""
     C = np.mean(position[:, t], axis=0) 
     return C
+
+
 
 def somme_normales_locales(position,neighbours,t):
     dico_normales = normales_locales(position, neighbours, t)
@@ -43,49 +57,62 @@ def normales_locales(position,neighbours,t)->dict:
                     d[(index,i)] = normale_locale
     return d  
 
+
+# Calcul de la vitesse moyenne de la créature à un instant t
 def vitesse_moyenne(vitesse, t):
     """
     vitesse: (n_nodes, n_interval_time, 2)
     t: float
-    retourne : moyenne des vitesses sur le temps t
+    retourne : moyenne des vitesses sur le temps t (2,)
     """
-    vitesse_moy = np.sum(vitesse[:, t], axis=0)  # liste de 2 éléments : v_moy_x, v_moy_y
+    vitesse_moy = np.sum(vitesse[:, t], axis=0) 
     return vitesse_moy
 
-
+# Calcul de l'énergie cinétique de la créature à un instant t
 def energie_cinetique(vitesse, t, masse = 1):
     """
     vitesse: (n_nodes, n_interval_time, 2)
-    retourne : énergie cinétique de la créature
+    retourne : énergie cinétique de la créature (float)
     """
     vitesse_norm = np.linalg.norm(vitesse[:, int(t)], axis=1)  # norme de la vitesse pour chaque noeud
     energie = 0.5 * masse * np.sum(vitesse_norm**2)  # somme des énergies cinétiques
     return energie
 
-
+# Calcul de la distance entre le centre de masse à l'instant t et l'origine de la créature (centre de masse à l'instant 0)
 def distance(position,t):
+    """position: positions des noeuds de la créature (n_nodes, n_t, 2)
+    t: le temps actuel (int)
+    return : distance entre barycentre et origine (float)
+    """
     return round(np.linalg.norm(centre_de_masse(position,t)-centre_de_masse(position,0)),0)
 
+
+# Calcul du score de la créature (pour l'instant uniquement la distance parcourue)
 def calcul_score(energie, distance, taille):
-    #score = 2/3*distance/max(distance) + 1/3* energie/taille * max(taille/energie)
-    return distance
+    """energie: énergie cinétique de la créature (float)
+    distance: distance parcourue par la créature (float)
+    taille: taille de la créature (float)
+    retourne : score de la créature (float)"""
+    score = 2/3*distance/max(distance) + 1/3* energie/taille * max(taille/energie)
+    return score
 
-def iter_score(position, vitesse): # Calcule les grandeurs liées au score d'UNE créature
-    masse = len(position)   # masse et taille sont identiques ici
-    energie = np.sum(np.square(vitesse))*masse*0.5
-    distance = np.linalg.norm(centre_de_masse(position,0) - centre_de_masse(position,-1))
-    return energie,distance,masse #return energie distance taille
 
-def selection(score_total:np.ndarray,force_total,):
-
-    return None
-
+# Calcul de l'offset pour centrer la créature sur l'écran
 def get_offset(barycentre, screen_width, screen_height):
+    """barycentre: centre de masse de la créature (2,)
+    screen_width: largeur de l'écran (int)
+    screen_height: hauteur de l'écran (int)
+    return : offset pour centrer la créature sur l'écran (2,)"""
+
     screen_center = np.array([screen_width // 2, screen_height // 2])
     return screen_center - barycentre
 
 
+# Calcul des longueurs à vide à partir de la matrice d'adjacence
 def neighbors(pos, matrice_adjacence):
+    """pos: positions des noeuds de la créature (n_nodes, 2)
+    matrice_adjacence: matrice d'adjacence de la créature (n_nodes, n_nodes)
+    return : matrice des distances entre les noeuds (n_nodes, n_nodes)"""
     l0 = np.zeros((len(pos), len(pos)))
     for i,point in enumerate(matrice_adjacence):
         for j,voisin in enumerate(point):
@@ -93,8 +120,9 @@ def neighbors(pos, matrice_adjacence):
                 l0[i,j] = np.linalg.norm(pos[i]-pos[j])
     return l0
 
-
-def check_line_cross(position:np.ndarray,t)->np.ndarray: # Fonction naïve pour empêcher les croisements de segments
+# Fonction naïve pour empêcher les croisements de segments - on ne l'utilise pas pour l'instant
+def check_line_cross(position:np.ndarray,t)->np.ndarray: 
+    
     l = len(position)
 
     # Tableau booléens d'intersection du segment i "[AB]" au segment j "[CD]""
