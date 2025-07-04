@@ -45,8 +45,8 @@ def simulation(i_simulation):
     with open(f"generations/meilleures_creatures_{i_simulation+1}.json", "w", encoding="utf-8") as f:
         json.dump(creatures_nouvelles, f, indent=2)
 
-def simulation_multiple(n):
-    for i in range(n):
+def simulation_multiple(n,debut_simulation=0):
+    for i in range(debut_simulation,n):
         print(f"Simulation {i+1} en cours...")
         debut = time.time()
         simulation(i)
@@ -64,6 +64,7 @@ def mutation_toutes(creatures):
         creatures_nouvelles.append([n+i,creature_modifiee[0].tolist(),creature_modifiee[1].tolist(),creature_modifiee[2].tolist()])
         i += 1
     return creatures_nouvelles
+
 
 if __name__ == "__main__":
     simulation_multiple(N_SIMULATIONS)

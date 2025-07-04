@@ -8,11 +8,11 @@ import utils as u
 
 
 LENGTH = 70
-NOMBRE_DE_CREATURES = 100
+NOMBRE_DE_CREATURES = 1000
 MIN_POINTS = 3
 MAX_POINTS = 10
-MIN_TICKS = 120
-MAX_TICKS = 180
+MIN_TICKS = 60
+MAX_TICKS = 120
 MIN_N_MOVEMENTS = 3
 MAX_N_MOVEMENTS = 20
 MIN_FORCE_MUSC = -1000
@@ -578,6 +578,8 @@ def generation_initiale():
             forc = creature[2].tolist() if hasattr(creature[2], "tolist") else creature[2]
             json_creatures.append([key, pos, mat, forc])
         json.dump(json_creatures, f, indent=2)
+    
+    print("Génération de créatures terminée !")
 
 generation_initiale()
 

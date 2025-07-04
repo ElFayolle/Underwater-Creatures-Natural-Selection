@@ -80,7 +80,7 @@ def visualisation_creature(i_generation,i_creature=0):
         creature = json.load(f)[i_creature][1:]  # de la forme [position,matrice_adjacence,forces] 
     pos = calcul_position([np.array(element) for element in creature])[1]
     return pos
-
+visualisation_creature(1,0)
 # Ajout de bulles pour une impression visuelle que la créature évolue dans l'eau
 bubbles = instantiate_bubbles(30)
 position_tot={0:pos,1:pos2}
