@@ -26,4 +26,4 @@ Nous commençons par générer une première tribu de créatures en positionnant
 
 [params.py] permet de stocker certaines paramètres globaux du projet
 
-[fond.jpg] est l'image utilisée dans la fenêtre pygames por le fond bleu de l'océan
+[fond.jpg] est l'image utilisée dans la fenêtre pygames pour le fond bleu de l'océan
