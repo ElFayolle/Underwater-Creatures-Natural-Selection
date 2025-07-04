@@ -81,10 +81,20 @@ while running and t < DUREE_SIM/(1/60):
     draw_creature(screen,pos, liste_forces,t, offset)
     #draw_creature(screen,pos2,liste_forces2,t,offset)
     # draw_creature(screen,pos3,t,offset)
+
+
+
     font=pygame.font.Font(None, 24)
     text = font.render("N° : " + str(CURRENT_CREATURE)+" distance : " + str(distance(position_tot[CURRENT_CREATURE],t)) ,1,(255,255,255))
+
+    force_liste_nom = ["force eau", "force de réaction", "force musculaire"]
+    couleurs_force = [(255,0,0),(0,255,0),(0,0,255)]
     screen.blit(text, (10, 10))
-    
+
+    for i, force in enumerate(liste_forces):
+        text = font.render(force_liste_nom[i], 1, couleurs_force[i])
+        screen.blit(text, (10, 30 + i * 20))
+
     pygame.display.flip()
     clock.tick(60)
     t += 1

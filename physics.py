@@ -124,7 +124,7 @@ def frottement_global(vitesse: np.ndarray, neighbours: np.ndarray, position: np.
     F_visc = np.zeros((n_nodes, 2))
     for i in range(n_nodes):
         if neighbours[i].sum() == 1:
-            if np.linalg.norm(vitesse[i, t]) > 1e-6 and np.linalg.norm(vitesse_moyenne(vitesse, t)) > 1e-6:
+            if np.linalg.norm(vitesse[i, t]) > 1e-2 and np.linalg.norm(vitesse_moyenne(vitesse, t)) > 1e-2:
                 
                 # Calcul de la force de frottement
                 #moyenne glissante des angles sur les 50 derniers angles :
@@ -133,9 +133,9 @@ def frottement_global(vitesse: np.ndarray, neighbours: np.ndarray, position: np.
                 F_visc[i] = -alpha * vitesse[i, t] * moyenne_glissante_angle
             else:
                 F_visc[i] = -alpha * vitesse[i, t] 
-        else:
-            F_visc[i] = 0
-    return F_visc
+            if np.linalg.norm(vitesse[i, t]) <1e-6 and np.linalg.norm(vitesse_moyenne(vitesse, t)) < 1e-6:
+                F_visc[i] = 0
+    return F_visc 
 
 
 def action_reaction(force_musc, pos, l0):
@@ -239,7 +239,7 @@ def calcul_position(creature, dt = 1/60, T = DUREE_SIM):
     for t in range(1,int(n_interval_time)):
         #calcul de la force de frottement liée à l'eau
 
-        f_eau[:,t] = 0#frottement_global(v,matrice_adjacence,xy,t-1) #np.array([[10,10]for _ in range(n_nodes)]) 
+        f_eau[:,t] = frottement_global(v,matrice_adjacence,xy,t-1) #np.array([[10,10]for _ in range(n_nodes)]) 
         #f_visc[:,t] = -gamma*v[:,t]
         #force de rappel en chacun des sommets
         #f_rap[:,t] = 0 #force_rappel_amortie(xy, v, l0, t-1) 
