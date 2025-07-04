@@ -1,18 +1,19 @@
-import pygame
+import contextlib
+with contextlib.redirect_stdout(None):
+    import pygame
 import numpy as np
 from utils import *
 from params import *
+# Set up the clock for frame rate control
 
 
 def see_creatures(position_tot,event:pygame.event):
     global CURRENT_CREATURE
     if event.key == pygame.K_LEFT:
-            if CURRENT_CREATURE!=0:
-                CURRENT_CREATURE-=1
+        CURRENT_CREATURE=(CURRENT_CREATURE-1)%len(position_tot)
     if event.key == pygame.K_RIGHT:
-            if CURRENT_CREATURE<len(position_tot)-1:
-                CURRENT_CREATURE+=1
-    return None
+        CURRENT_CREATURE=(CURRENT_CREATURE+1)%len(position_tot)
+    return CURRENT_CREATURE
 
 
 # Affichage de la créature et des forces associées
@@ -68,5 +69,5 @@ def draw_bubbles(screen,bubbles,offset):
     return: None
     """
     for index,bubble in enumerate(bubbles):
-        pygame.draw.circle(screen,(29,50,140),bubble[:-1]+offset,bubble[2])
+        pygame.draw.circle(screen,(29,50,140),(bubble[:-1]+offset)%np.array([WIDTH,HEIGHT]),bubble[2])
     return None

@@ -20,6 +20,7 @@ running = True
 Test créature - la Méduse :
 """
 pos = np.array([[100,100], [150,150], [200,100]])
+pos0_5 = np.array([[50,50], [150,150], [250,50]])
 pos2 = np.array([[150,300], [500,300], [600,400]])
 matrice_adjacence = np.array([[0,1,0], [1,0,1], [0,1,0]])
 
@@ -53,7 +54,7 @@ force_initial2 = ([[[0,-15,]],[[0,0]]])
 
 
 meduse = [pos, matrice_adjacence,force_musc_periode2]
-med2 = [pos2, matrice_adjacence, force_initial]
+med2 = [pos0_5, matrice_adjacence, force_musc_periode2]
 
 """
 Test simple - le baton
@@ -93,7 +94,7 @@ while running and t < DUREE_SIM/(DT):
             running = False
         # Pour pouvoir changer de créature avec les touches flèches
         if event.type == pygame.KEYDOWN:
-            see_creatures(position_tot, event)
+            CURRENT_CREATURE=see_creatures(position_tot, event)
             
 
     screen.blit(background, (0, 0))

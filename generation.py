@@ -381,7 +381,6 @@ def adn_changement_position_noeud (creature):
             connections[k][voisin] = nouvelle_distance
 
     if not creature_est_valide([positions, connections, forces]) :
-        print("Impossible de bouger le point ", k)
         return creature
     
     return (positions, connections, forces)
@@ -431,12 +430,10 @@ def adn_duree_cycle_forces(creature):
     forces = np.copy(creature[2])
     x = random.randint(1, 10)
     sens = random.choice([-1, 1])
-    print(np.shape(forces))
     if sens == -1 :
         forces = forces[:,:-x]
     else :
         forces = np.concatenate([forces, np.zeros((len(forces), x, 2))], axis = 1)
-    print(np.shape(forces), x, sens)
 
     return [np.copy(creature[0]), np.copy(creature[1]), forces]
 
