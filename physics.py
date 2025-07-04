@@ -24,9 +24,9 @@ def frottement_eau_3(vitesse:np.ndarray,neighbours:np.ndarray,position:np.ndarra
         # Fonction de frottement pas identique en fonction de la présence de voisins
         if np.count_nonzero(neighbours[node])<=1:
             #if np.linalg.norm(normale) > 1e-10:
-            #    F_visq[node] = -alpha*(vitesse[node,t])*np.linalg.norm((vitesse[node,t]))
+            F_visq[node] = -alpha*(vitesse[node,t])*np.linalg.norm((vitesse[node,t]))
         else:
-                F_visq[node] = -alpha*(vitesse[node,t])
+            F_visq[node] = -alpha*(vitesse[node,t])
     return F_visq  
 
 
