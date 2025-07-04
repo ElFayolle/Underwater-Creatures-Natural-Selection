@@ -8,8 +8,8 @@ from scipy.ndimage import gaussian_filter1d
 
 LENGTH = 70
 NOMBRE_DE_CREATURES = 1000
-MIN_NODES = 3
-MAX_NODES = 10
+MIN_POINTS = 3
+MAX_POINTS = 10
 MIN_TICKS = 120
 MAX_TICKS = 180
 MIN_N_MOVEMENTS = 3
