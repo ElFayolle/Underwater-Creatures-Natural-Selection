@@ -3,16 +3,19 @@ import matplotlib.pyplot as plt
 import random
 import math
 import json
+from scipy.ndimage import gaussian_filter1d
 
 
 LENGTH = 70
-NOMBRE_DE_CREATURES = 1000
-MIN_TICKS = 50
-MAX_TICKS = 60
+NOMBRE_DE_CREATURES = 100
+MIN_NODES = 3
+MAX_NODES = 10
+MIN_TICKS = 120
+MAX_TICKS = 180
 MIN_N_MOVEMENTS = 10
 MAX_N_MOVEMENTS = 20
-MIN_FORCE_MUSC = -10
-MAX_FORCE_MUSC = 10
+MIN_FORCE_MUSC = -100
+MAX_FORCE_MUSC = 100
 
 
 
@@ -92,7 +95,7 @@ def croisement_segments(segment1, segment2):
 
 
 def create_random_creature():
-    num_points = random.randint(5, 6)
+    num_points = random.randint(MIN_NODES, MAX_NODES)
     positions = [[0, 0]]
     connections = [[0]]  #Matrice d'adjacence (de distances)
     i = 0
@@ -528,6 +531,12 @@ def creature_force_musculaire_aleatoire(creatures_tot):
             n_movements = np.random.randint(MIN_N_MOVEMENTS, MAX_N_MOVEMENTS) # Nombre de mouvements dans un cycle pour le noeud i
             mask[i, np.random.choice(ticks, size=n_movements, replace=False)] = True
         force_musc[mask] = MIN_FORCE_MUSC + (MAX_FORCE_MUSC - MIN_FORCE_MUSC) * np.random.random((mask.sum(),2))
+
+        # Appliquer un flou gaussien pour lisser les forces
+        for i in range(n):
+            for d in range(2):  # Pour chaque dimension (x et y)
+                force_musc[i,:,d] = gaussian_filter1d(force_musc[i,:,d], sigma=1)
+
         creatures_tot[key].append(force_musc)
     return creatures_tot
 

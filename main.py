@@ -241,9 +241,9 @@ t = 0
 def visualisation_creature(i_generation,i_creature=0):
     with open(f"generations/meilleures_creatures_{i_generation}.json", "r", encoding="utf-8") as f:
         creature = json.load(f)[i_creature][1:]  # de la forme [position,matrice_adjacence,forces] 
-    pos = calcul_position([np.array(element) for element in creature])[1]
-    return pos
-
+    calc = calcul_position([np.array(element) for element in creature])
+    return calc
+#v,pos,liste_forces,score = visualisation_creature(7,30)  # Visualisation de la créature 0 de la génération 0
 #Test bulles
 bubbles = instantiate_bubbles(30)
 position_tot={0:pos,1:pos2}
